@@ -7,6 +7,7 @@ require (
 	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80
 	github.com/zclconf/go-cty v1.0.0
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+	gopkg.in/yaml.v2 v2.2.2
 )
 
 require (
