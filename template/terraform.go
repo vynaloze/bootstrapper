@@ -1,12 +1,23 @@
 package template
 
 import (
+	_ "embed"
 	"github.com/hashicorp/hcl2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 	"regexp"
 	"sort"
 )
+
+//go:embed templates/gitignore_editors.tpl
+var gitignoreEditors string
+
+//go:embed templates/gitignore_terraform.tpl
+var gitignoreTerraform string
+
+func TerraformGitignore() string {
+	return gitignoreTerraform + "\n" + gitignoreEditors
+}
 
 func TerraformModuleCall(name string, source string, vars map[string]interface{}) (string, error) {
 	f := hclwrite.NewEmptyFile()
