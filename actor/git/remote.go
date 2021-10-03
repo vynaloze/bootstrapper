@@ -10,7 +10,7 @@ type RemoteActor interface {
 	RequestReview(branch *string, summary *string) error
 }
 
-func New(opts *RemoteOpts) (RemoteActor, error) {
+func NewRemote(opts *RemoteOpts) (RemoteActor, error) {
 	if strings.Contains(opts.URL, "github.com") {
 		return newGitHubActor(opts)
 	}

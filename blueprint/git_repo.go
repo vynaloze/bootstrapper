@@ -12,7 +12,7 @@ func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
 	if strings.Count(opts.RemoteOpts.URL, "/") < 2 {
 		opts.RemoteOpts.URL = opts.RemoteOpts.URL + "/" + opts.GetSharedInfraRepoName()
 	}
-	gitActor, err := git.New(&opts.RemoteOpts)
+	gitActor, err := git.NewRemote(&opts.RemoteOpts)
 	if err != nil {
 		return err
 	}
