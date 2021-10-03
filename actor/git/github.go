@@ -7,21 +7,15 @@ import (
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 	"net/http"
-	"sync"
+	"strings"
 )
 
 type gitHubActor struct {
-	Owner  string
-	Repo   string
+	RemoteOpts
 	client *github.Client
-	once   sync.Once
 }
 
 func (g *gitHubActor) Commit(content *string, file *string, branch *string, message *string, overwrite bool) error {
-	if g.client == nil {
-		return fmt.Errorf("not authenticated")
-	}
-
 	ctx := context.TODO()
 
 	defaultBranch, err := g.getDefaultBranch(ctx)
@@ -66,7 +60,7 @@ func (g *gitHubActor) Commit(content *string, file *string, branch *string, mess
 }
 
 func (g *gitHubActor) getDefaultBranch(ctx context.Context) (*string, error) {
-	repo, _, err := g.client.Repositories.Get(ctx, g.Owner, g.Repo)
+	repo, _, err := g.client.Repositories.Get(ctx, g.Owner(), g.Repo())
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +69,7 @@ func (g *gitHubActor) getDefaultBranch(ctx context.Context) (*string, error) {
 
 func (g *gitHubActor) getFileContent(ctx context.Context, file *string, branch *string) (*github.RepositoryContent, error) {
 	opts := github.RepositoryContentGetOptions{Ref: *branch}
-	fileContent, _, resp, err := g.client.Repositories.GetContents(ctx, g.Owner, g.Repo, *file, &opts)
+	fileContent, _, resp, err := g.client.Repositories.GetContents(ctx, g.Owner(), g.Repo(), *file, &opts)
 
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
@@ -87,7 +81,7 @@ func (g *gitHubActor) getFileContent(ctx context.Context, file *string, branch *
 }
 
 func (g *gitHubActor) createBranch(ctx context.Context, newBranch *string, defaultBranch *string) error {
-	defaultRef, _, err := g.client.Git.GetRef(ctx, g.Owner, g.Repo, "heads/"+*defaultBranch)
+	defaultRef, _, err := g.client.Git.GetRef(ctx, g.Owner(), g.Repo(), "heads/"+*defaultBranch)
 	if err != nil {
 		return err
 	}
@@ -96,28 +90,27 @@ func (g *gitHubActor) createBranch(ctx context.Context, newBranch *string, defau
 		Ref:    github.String("heads/" + *newBranch),
 		Object: defaultRef.Object,
 	}
-	_, _, err = g.client.Git.CreateRef(ctx, g.Owner, g.Repo, &newRef)
+	_, _, err = g.client.Git.CreateRef(ctx, g.Owner(), g.Repo(), &newRef)
 	return err
 }
 
 func (g *gitHubActor) createOrUpdateFile(ctx context.Context, content *string, file *string, branch *string, message *string, oldSHA *string) error {
 	opts := &github.RepositoryContentFileOptions{
-		Message:   message,
-		Content:   []byte(*content),
-		SHA:       oldSHA,
-		Branch:    branch,
-		Committer: &github.CommitAuthor{Name: github.String("bootstrapper"), Email: github.String("bootstrapper@example.com")},
+		Message: message,
+		Content: []byte(*content),
+		SHA:     oldSHA,
+		Branch:  branch,
+		Committer: &github.CommitAuthor{
+			Name:  github.String(g.Opts.GetAuthorName()),
+			Email: github.String(g.Opts.GetAuthorEmail()),
+		},
 	}
 
-	_, _, err := g.client.Repositories.CreateFile(ctx, g.Owner, g.Repo, *file, opts)
+	_, _, err := g.client.Repositories.CreateFile(ctx, g.Owner(), g.Repo(), *file, opts)
 	return err
 }
 
 func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
-	if g.client == nil {
-		return fmt.Errorf("not authenticated")
-	}
-
 	ctx := context.TODO()
 	defaultBranch, err := g.getDefaultBranch(ctx)
 	if err != nil {
@@ -130,7 +123,7 @@ func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
 		Base:  defaultBranch,
 	}
 
-	pr, _, err := g.client.PullRequests.Create(ctx, g.Owner, g.Repo, newPR)
+	pr, _, err := g.client.PullRequests.Create(ctx, g.Owner(), g.Repo(), newPR)
 	if err != nil {
 		return err
 	}
@@ -138,14 +131,26 @@ func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
 	return nil
 }
 
-func (g *gitHubActor) Authenticate(token *string) {
-	g.once.Do(func() {
-		ctx := context.Background()
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: *token},
-		)
-		tc := oauth2.NewClient(ctx, ts)
+func newGitHubActor(o *RemoteOpts) (RemoteActor, error) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: o.Auth},
+	)
+	tc := oauth2.NewClient(ctx, ts)
 
-		g.client = github.NewClient(tc)
-	})
+	client := github.NewClient(tc)
+	return &gitHubActor{
+		RemoteOpts: *o,
+		client:     client,
+	}, nil
+}
+
+func (g *gitHubActor) Owner() string {
+	s := strings.Split(g.URL, "/")
+	return s[1]
+}
+
+func (g *gitHubActor) Repo() string {
+	s := strings.Split(g.URL, "/")
+	return s[2]
 }

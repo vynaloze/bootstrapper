@@ -2,43 +2,30 @@ package blueprint
 
 import (
 	"bootstrapper/actor/git"
-	"bootstrapper/datasource"
 	"bootstrapper/template"
 	"fmt"
+	"strings"
 	"time"
 )
 
-const (
-	defaultRepoModuleSourceTemplate = "git::git@%s:%s/terraform-github-repository-manual.git?ref=%s" //FIXME
-	defaultRepoModuleVersion        = "v1.0.0"
-)
-
-func CreateApplicationGitRepo(name string) error {
-	gitProvider, ok := datasource.Find("git.provider")
-	if !ok {
-		return fmt.Errorf("required key not found: git.provider")
+func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
+	if strings.Count(opts.RemoteOpts.URL, "/") < 2 {
+		opts.RemoteOpts.URL = opts.RemoteOpts.URL + "/" + opts.GetSharedInfraRepoName()
 	}
-	gitProject, ok := datasource.Find("git.project")
-	if !ok {
-		return fmt.Errorf("required key not found: git.project")
-	}
-
-	repoModuleSource := prepareRepoModuleSource(gitProvider, gitProject)
-
-	gitActor, err := prepareGitActor(gitProvider, gitProject)
+	gitActor, err := git.New(&opts.RemoteOpts)
 	if err != nil {
 		return err
 	}
 
-	vars := map[string]interface{}{"name": name, "private": true}
-	renderedTemplate, err := template.TerraformModuleCall("git_repo_"+name, repoModuleSource, vars)
+	vars := map[string]interface{}{"name": opts.RepoName, "private": true}
+	renderedTemplate, err := template.TerraformModuleCall("git_repo_"+opts.RepoName, opts.GetRepoModuleSource(), vars)
 	if err != nil {
 		return err
 	}
 
-	targetFile := "apps/git_repos.tf"
-	branch := fmt.Sprintf("%s/%s/%d", "bootstrapper", name, time.Now().UnixMilli())
-	message := "[bootstrapper] add git repo for " + name
+	targetFile := opts.GetSharedInfraCoreDir() + "/repos.tf"
+	branch := fmt.Sprintf("%s/%s/%d", opts.GetAuthorName(), opts.RepoName, time.Now().UnixMilli())
+	message := fmt.Sprintf("[%s] add git repo for %s", opts.GetAuthorName(), opts.RepoName)
 
 	err = gitActor.Commit(&renderedTemplate, &targetFile, &branch, &message, false)
 	if err != nil {
@@ -51,24 +38,34 @@ func AddApplicationGitRepos() {} //add to existing one (for_each-ed)???
 
 func CreateApplicationsGitRepos() {}
 
-func prepareRepoModuleSource(gitProvider, gitProject string) string {
-	repoModuleSource, ok := datasource.Find("blueprints.git.application.repo_module.source")
-	if !ok {
-		repoModuleVersion, ok := datasource.Find("blueprints.git.application.repo_module.version")
-		if !ok {
-			repoModuleVersion = defaultRepoModuleVersion
-		}
-		repoModuleSource = fmt.Sprintf(defaultRepoModuleSourceTemplate, gitProvider, gitProject, repoModuleVersion)
-	}
-	return repoModuleSource
+type ApplicationGitRepoOpts struct {
+	git.RemoteOpts
+	TerraformOpts
+	RepoName          string
+	RepoModuleSource  *string
+	RepoModuleVersion *string
 }
 
-func prepareGitActor(gitProvider, gitProject string) (git.GitActor, error) {
-	repoName, ok := datasource.Find("terraform.infra_shared_repo_name")
-	if !ok {
-		repoName = TerraformInfraSharedRepoName
-	}
-	sharedInfraRepoURL := fmt.Sprintf("%s/%s/%s", gitProvider, gitProject, repoName)
+var defaultOpts = ApplicationGitRepoOpts{
+	RepoModuleSource:  ptr("git::git@%s:%s/terraform-github-repository-manual.git?ref=%s"), // FIXME
+	RepoModuleVersion: ptr("v1.0.0"),
+}
 
-	return git.New(sharedInfraRepoURL)
+func (o *ApplicationGitRepoOpts) GetRepoModuleSource() string {
+	if o.RepoModuleSource == nil {
+		return *defaultOpts.RepoModuleSource
+	}
+	return *o.RepoModuleSource
+}
+
+func (o *ApplicationGitRepoOpts) GetRepoModuleVersion() string {
+	if o.RepoModuleVersion == nil {
+		return *defaultOpts.RepoModuleVersion
+	}
+	return *o.RepoModuleVersion
+}
+
+func ptr(v string) *string {
+	vv := v
+	return &vv
 }

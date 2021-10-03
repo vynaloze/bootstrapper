@@ -14,6 +14,9 @@ import (
 
 const defaultBranch = "main"
 
+type BootstrapOpts struct {
+}
+
 func Bootstrap() error {
 	_, err := initLocalRepo()
 	if err != nil {
@@ -28,7 +31,7 @@ func initLocalRepo() (*git.Worktree, error) {
 		return nil, err
 	}
 
-	repoDir := filepath.Join(dir, TerraformInfraSharedRepoName)
+	repoDir := filepath.Join(dir, "TerraformInfraSharedRepoName") // FIXME
 	r, err := git.PlainInit(repoDir, false)
 	if err != nil {
 		return nil, err

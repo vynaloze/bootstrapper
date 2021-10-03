@@ -1,22 +1,31 @@
 package main
 
 import (
+	"bootstrapper/actor/git"
 	"bootstrapper/blueprint"
 	"bootstrapper/datasource"
 	"fmt"
 )
 
 func main() {
-	l, _ := datasource.NewLiteral()
-	l["git.provider"] = "github.com"
-	l["git.project"] = "bootstrapper-demo"
-
-	_, err := datasource.NewYamlFile("secrets.yaml")
+	secrets, err := datasource.NewYamlFile("secrets.yaml")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
+	}
+	token, ok := secrets.Get("actor.git.github.token")
+	if !ok {
+		panic(err)
 	}
 
-	err = blueprint.CreateApplicationGitRepo("third_app")
+	opts := blueprint.ApplicationGitRepoOpts{
+		RemoteOpts: git.RemoteOpts{
+			URL:  "github.com/bootstrapper-demo",
+			Auth: token,
+		},
+		RepoName: "after_refactor",
+	}
+
+	err = blueprint.CreateApplicationGitRepo(opts)
 	if err != nil {
 		fmt.Println(err)
 	}
