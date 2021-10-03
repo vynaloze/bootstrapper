@@ -6,7 +6,9 @@ import (
 )
 
 func main() {
-	err := blueprint.Bootstrap()
+	opts := blueprint.BootstrapOpts{}
+
+	err := blueprint.Bootstrap(opts)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -6,8 +6,14 @@ import (
 )
 
 type RemoteActor interface {
-	Commit(content *string, file *string, branch *string, message *string, overwrite bool) error
+	Actor
 	RequestReview(branch *string, summary *string) error
+}
+
+type RemoteOpts struct {
+	Opts
+	URL  string
+	Auth string
 }
 
 func NewRemote(opts *RemoteOpts) (RemoteActor, error) {

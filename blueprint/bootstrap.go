@@ -1,76 +1,45 @@
 package blueprint
 
 import (
+	"bootstrapper/actor/git"
 	"bootstrapper/template"
 	"fmt"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 )
 
-const defaultBranch = "main"
-
 type BootstrapOpts struct {
+	git.Opts
+	TerraformOpts
 }
 
-func Bootstrap() error {
-	_, err := initLocalRepo()
+func Bootstrap(opts BootstrapOpts) error {
+	gitActor := git.NewLocal(&opts.Opts)
+
+	err := initLocalRepo(gitActor, opts)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func initLocalRepo() (*git.Worktree, error) {
-	dir, err := os.MkdirTemp("", "bootstrapper-")
+func initLocalRepo(gitActor git.LocalActor, opts BootstrapOpts) error {
+	dir, err := os.MkdirTemp("", opts.GetAuthorName()+"-")
 	if err != nil {
-		return nil, err
+		return err
 	}
+	repoDir := filepath.Join(dir, opts.GetSharedInfraRepoName())
 
-	repoDir := filepath.Join(dir, "TerraformInfraSharedRepoName") // FIXME
-	r, err := git.PlainInit(repoDir, false)
+	err = gitActor.Init(repoDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	fmt.Println("repo path: " + repoDir) // TODO
 
-	w, err := r.Worktree()
-	if err != nil {
-		return nil, err
-	}
+	file := filepath.Join(repoDir, ".gitignore")
+	content := template.TerraformGitignore()
+	branch := opts.GetDefaultBranch()
+	message := "add .gitignore"
 
-	err = r.CreateBranch(&config.Branch{
-		Name:   defaultBranch,
-		Remote: "origin",
-		Merge:  "refs/heads/" + defaultBranch,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	file := ".gitignore"
-	filename := filepath.Join(repoDir, file)
-	err = ioutil.WriteFile(filename, []byte(template.TerraformGitignore()), 0644)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = w.Add(file)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = w.Commit("add "+file, &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "bootstrapper",
-			Email: "bootstrapper@example.com",
-			When:  time.Now(),
-		},
-	})
-
-	return w, err
+	return gitActor.Commit(&content, &file, &branch, &message, false)
 }

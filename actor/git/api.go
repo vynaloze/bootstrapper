@@ -1,5 +1,9 @@
 package git
 
+type Actor interface {
+	Commit(content *string, file *string, branch *string, message *string, overwrite bool) error
+}
+
 type Opts struct {
 	DefaultBranch *string
 	AuthorName    *string
@@ -31,12 +35,6 @@ func (o *Opts) GetAuthorEmail() string {
 		return *defaultOpts.AuthorEmail
 	}
 	return *o.AuthorEmail
-}
-
-type RemoteOpts struct {
-	Opts
-	URL  string
-	Auth string
 }
 
 func ptr(v string) *string {
