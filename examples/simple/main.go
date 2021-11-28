@@ -24,6 +24,7 @@ func main() {
 		},
 		RepoName: "after_refactor",
 	}
+	opts.WithGitHubDefaults(true)
 
 	err = blueprint.CreateApplicationGitRepo(opts)
 	if err != nil {

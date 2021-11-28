@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"github.com/hashicorp/hcl2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 	"regexp"
 	"sort"
 )
@@ -19,23 +18,34 @@ func TerraformGitignore() string {
 	return gitignoreTerraform + "\n" + gitignoreEditors
 }
 
-func TerraformModuleCall(name string, source string, vars map[string]interface{}) (string, error) {
+type TerraformVariable struct {
+	Key   string
+	Value cty.Value
+}
+
+func TerraformModuleFromRegistry(name string, source string, version string, vars []*TerraformVariable) (string, error) {
+	// vars has to be list to preserve variable ordering and allow specifying whitespace in between
 	f := hclwrite.NewEmptyFile()
 	rootBody := f.Body()
 	moduleBlock := rootBody.AppendNewBlock("module", []string{name})
 	moduleBody := moduleBlock.Body()
 	moduleBody.SetAttributeValue("source", cty.StringVal(source))
+	moduleBody.SetAttributeValue("version", cty.StringVal(version))
 	moduleBody.AppendNewline()
-	for k, v := range vars { // FIXME keys are not in order (well, obviously) and it's not possible to set whitespace
-		t, err := gocty.ImpliedType(v)
-		if err != nil {
-			return "", err
+	for _, v := range vars {
+		if v == nil {
+			moduleBody.AppendNewline()
+		} else {
+			//t, err := gocty.ImpliedType(v.Value)
+			//if err != nil {
+			//	return "", fmt.Errorf("gocty.ImpliedType(%v): %w", v.Value, err)
+			//}
+			//vv, err := gocty.ToCtyValue(v.Value, t)
+			//if err != nil {
+			//	return "", fmt.Errorf("gocty.ToCtyValue(%v, %v): %w", v.Value, t, err)
+			//}
+			moduleBody.SetAttributeValue(v.Key, v.Value)
 		}
-		vv, err := gocty.ToCtyValue(v, t)
-		if err != nil {
-			return "", err
-		}
-		moduleBody.SetAttributeValue(k, vv)
 	}
 	rootBody.AppendNewline()
 	return string(f.Bytes()), nil
@@ -65,6 +75,10 @@ func TerraformVersionsFile(providers map[string]TerraformProvider) (string, erro
 		providerBody.SetAttributeValue("version", cty.StringVal(providers[name].Version))
 	}
 	return blocksAsMap(string(f.Bytes()), providers)
+}
+
+func mapAsBlock(sourceMap map[string]cty.Value) {
+	// try with go templates, maybe?
 }
 
 func blocksAsMap(body string, providers map[string]TerraformProvider) (string, error) {

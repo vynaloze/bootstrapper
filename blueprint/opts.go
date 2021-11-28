@@ -32,3 +32,8 @@ func (o *TerraformOpts) GetSharedInfraCoreDir() string {
 	}
 	return *o.SharedInfraCoreDir
 }
+
+func ptr(v string) *string {
+	vv := v
+	return &vv
+}

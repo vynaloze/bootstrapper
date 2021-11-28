@@ -4,6 +4,7 @@ import (
 	"bootstrapper/actor/git"
 	"bootstrapper/template"
 	"fmt"
+	"github.com/zclconf/go-cty/cty"
 	"strings"
 	"time"
 )
@@ -17,8 +18,13 @@ func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
 		return err
 	}
 
-	vars := map[string]interface{}{"name": opts.RepoName, "private": true}
-	renderedTemplate, err := template.TerraformModuleCall("git_repo_"+opts.RepoName, opts.GetRepoModuleSource(), vars)
+	// TODO for_each-ed module
+	renderedTemplate, err := template.TerraformModuleFromRegistry(
+		"git_repo_"+opts.RepoName,
+		opts.RepoModuleSource,
+		opts.RepoModuleVersion,
+		opts.RepoModuleVars,
+	)
 	if err != nil {
 		return err
 	}
@@ -42,30 +48,44 @@ type ApplicationGitRepoOpts struct {
 	git.RemoteOpts
 	TerraformOpts
 	RepoName          string
-	RepoModuleSource  *string
-	RepoModuleVersion *string
+	RepoModuleSource  string
+	RepoModuleVersion string
+	RepoModuleVars    []*template.TerraformVariable
 }
 
-var defaultOpts = ApplicationGitRepoOpts{
-	RepoModuleSource:  ptr("git::git@%s:%s/terraform-github-repository-manual.git?ref=%s"), // FIXME
-	RepoModuleVersion: ptr("v1.0.0"),
-}
-
-func (o *ApplicationGitRepoOpts) GetRepoModuleSource() string {
-	if o.RepoModuleSource == nil {
-		return *defaultOpts.RepoModuleSource
+func (o *ApplicationGitRepoOpts) WithGitHubDefaults(strict bool) {
+	o.RepoModuleSource = "mineiros-io/repository/github"
+	o.RepoModuleVersion = "~> 0.10.0"
+	o.RepoModuleVars = []*template.TerraformVariable{
+		{"name", cty.StringVal(o.RepoName)},
+		{"visibility", cty.StringVal("private")},
+		{"auto_init", cty.BoolVal(false)},
+		nil,
+		// TODO access control
+		// TODO CI integration (Actions are not yet in provider unfortunately)
+		{"allow_rebase_merge", cty.BoolVal(true)},
+		{"allow_merge_commit", cty.BoolVal(!strict)},
+		{"delete_branch_on_merge", cty.BoolVal(true)},
+		nil,
+		{"branch_protections_v3", cty.ListVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"branch":         cty.StringVal(o.GetDefaultBranch()),
+				"enforce_admins": cty.BoolVal(true),
+				"required_status_checks": cty.ObjectVal(map[string]cty.Value{
+					"strict": cty.BoolVal(strict),
+					"contexts": cty.ListVal([]cty.Value{
+						cty.StringVal("ci/TODO"), //TODO requires CI integration
+					}),
+				}),
+				"required_pull_request_reviews": cty.ObjectVal(map[string]cty.Value{
+					"dismiss_stale_reviews":           cty.BoolVal(true),
+					"require_code_owner_reviews":      cty.BoolVal(true),
+					"required_approving_review_count": cty.NumberIntVal(1),
+				}),
+				//"restrictions": map[string][]string{
+				// TODO requires access management
+				//},
+			}),
+		})},
 	}
-	return *o.RepoModuleSource
-}
-
-func (o *ApplicationGitRepoOpts) GetRepoModuleVersion() string {
-	if o.RepoModuleVersion == nil {
-		return *defaultOpts.RepoModuleVersion
-	}
-	return *o.RepoModuleVersion
-}
-
-func ptr(v string) *string {
-	vv := v
-	return &vv
 }
