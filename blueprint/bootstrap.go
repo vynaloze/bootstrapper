@@ -2,6 +2,7 @@ package blueprint
 
 import (
 	"bootstrapper/actor/git"
+	"bootstrapper/actor/terraform"
 	"bootstrapper/template"
 	"fmt"
 	"os"
@@ -11,14 +12,19 @@ import (
 type BootstrapOpts struct {
 	git.Opts
 	TerraformOpts
+	EnvVars map[string]string
 
 	localRepoDir string
 }
 
 func Bootstrap(opts BootstrapOpts) error {
 	gitActor := git.NewLocal(&opts.Opts)
+	tfActor, err := terraform.New()
+	if err != nil {
+		return err
+	}
 
-	err := findLocalRepoDir(&opts)
+	err = findLocalRepoDir(&opts)
 	if err != nil {
 		return err
 	}
@@ -28,6 +34,10 @@ func Bootstrap(opts BootstrapOpts) error {
 		return err
 	}
 	err = callTerraformRepoModule(gitActor, opts)
+	if err != nil {
+		return err
+	}
+	err = localApply(*tfActor, opts)
 	if err != nil {
 		return err
 	}
@@ -72,4 +82,14 @@ func callTerraformRepoModule(gitActor git.LocalActor, opts BootstrapOpts) error 
 	message := "feat: add tf-shared-infra repo"
 
 	return gitActor.Commit(&content, &file, &branch, &message, false)
+}
+
+func localApply(tfActor terraform.Actor, opts BootstrapOpts) error {
+	for k, v := range opts.EnvVars {
+		err := os.Setenv(k, v)
+		if err != nil {
+			return err
+		}
+	}
+	return tfActor.Apply(filepath.Join(opts.localRepoDir, "core")) //TODO?
 }
