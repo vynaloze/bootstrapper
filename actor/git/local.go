@@ -8,6 +8,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -48,6 +49,12 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 		if err != nil {
 			return err
 		}
+	}
+
+	parent := filepath.Dir(*file)
+	if parent != string(os.PathSeparator) && parent != "." {
+		// needs to create a directory
+		_ = os.Mkdir(parent, 0644) // ignore errors if directory exists
 	}
 
 	err = ioutil.WriteFile(*file, []byte(*content), 0644)
