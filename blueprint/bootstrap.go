@@ -12,19 +12,25 @@ import (
 type BootstrapOpts struct {
 	git.Opts
 	TerraformOpts
-	EnvVars map[string]string
 
-	localRepoDir string
+	localRepoDir *string
 }
 
-func Bootstrap(opts BootstrapOpts) error {
-	gitActor := git.NewLocal(&opts.Opts)
-	tfActor, err := terraform.New()
-	if err != nil {
-		return err
+func (b *BootstrapOpts) getLocalRepoDir() (string, error) {
+	if b.localRepoDir == nil {
+		dir, err := os.MkdirTemp("", b.GetAuthorName()+"-")
+		if err != nil {
+			return "", err
+		}
+		repoDir := filepath.Join(dir, b.GetSharedInfraRepoName())
+		b.localRepoDir = &repoDir
 	}
+	return *b.localRepoDir, nil
+}
 
-	err = findLocalRepoDir(&opts)
+func Bootstrap(opts *BootstrapOpts) error {
+	gitActor := git.NewLocal(opts.Opts)
+	tfActor, err := terraform.New()
 	if err != nil {
 		return err
 	}
@@ -41,27 +47,27 @@ func Bootstrap(opts BootstrapOpts) error {
 	if err != nil {
 		return err
 	}
+	err = gitActor.Push(opts.GetSharedInfraRepoName())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func findLocalRepoDir(opts *BootstrapOpts) error {
-	dir, err := os.MkdirTemp("", opts.GetAuthorName()+"-")
+func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
+	repoDir, err := opts.getLocalRepoDir()
 	if err != nil {
 		return err
 	}
-	opts.localRepoDir = filepath.Join(dir, opts.GetSharedInfraRepoName())
-	return nil
-}
 
-func initLocalRepo(gitActor git.LocalActor, opts BootstrapOpts) error {
-	err := gitActor.Init(opts.localRepoDir)
+	err = gitActor.Init(repoDir)
 	if err != nil {
 		return err
 	}
-	fmt.Println("repo path: " + opts.localRepoDir) // TODO
+	fmt.Println("repo path: " + repoDir) // TODO
 
-	file := filepath.Join(opts.localRepoDir, ".gitignore")
+	file := filepath.Join(repoDir, ".gitignore")
 	content := template.TerraformGitignore()
 	branch := opts.GetDefaultBranch()
 	message := "add .gitignore"
@@ -69,8 +75,13 @@ func initLocalRepo(gitActor git.LocalActor, opts BootstrapOpts) error {
 	return gitActor.Commit(&content, &file, &branch, &message, false)
 }
 
-func callTerraformRepoModule(gitActor git.LocalActor, opts BootstrapOpts) error {
-	file := filepath.Join(opts.localRepoDir, "core", "repos.tf")
+func callTerraformRepoModule(gitActor git.LocalActor, opts *BootstrapOpts) error {
+	repoDir, err := opts.getLocalRepoDir()
+	if err != nil {
+		return err
+	}
+
+	file := filepath.Join(repoDir, opts.GetTerraformModuleReposFile())
 	content, err := template.TfInfraSharedCoreReposTf(template.TfInfraSharedCoreReposTfOpts{
 		Strict:        true, //TODO?
 		DefaultBranch: opts.GetDefaultBranch(),
@@ -84,12 +95,17 @@ func callTerraformRepoModule(gitActor git.LocalActor, opts BootstrapOpts) error 
 	return gitActor.Commit(&content, &file, &branch, &message, false)
 }
 
-func localApply(tfActor terraform.Actor, opts BootstrapOpts) error {
-	for k, v := range opts.EnvVars {
+func localApply(tfActor terraform.Actor, opts *BootstrapOpts) error {
+	repoDir, err := opts.getLocalRepoDir()
+	if err != nil {
+		return err
+	}
+
+	for k, v := range opts.ProviderSecrets {
 		err := os.Setenv(k, v)
 		if err != nil {
 			return err
 		}
 	}
-	return tfActor.Apply(filepath.Join(opts.localRepoDir, "core")) //TODO?
+	return tfActor.Apply(filepath.Dir(filepath.Join(repoDir, opts.GetTerraformInfraReposFile())))
 }

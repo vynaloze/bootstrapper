@@ -10,14 +10,8 @@ type RemoteActor interface {
 	RequestReview(branch *string, summary *string) error
 }
 
-type RemoteOpts struct {
-	Opts
-	URL  string
-	Auth string
-}
-
-func NewRemote(opts *RemoteOpts) (RemoteActor, error) {
-	if strings.Contains(opts.URL, "github.com") {
+func NewRemote(opts *Opts) (RemoteActor, error) {
+	if strings.Contains(opts.RemoteBaseURL, "github.com") {
 		return newGitHubActor(opts)
 	}
 	return nil, fmt.Errorf("unsupported Git provider")

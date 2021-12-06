@@ -6,6 +6,7 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 type LocalActor interface {
 	Actor
 	Init(path string) error
+	Push(repoName string) error
 }
 
 type localActor struct {
@@ -22,8 +24,8 @@ type localActor struct {
 	r *git.Repository
 }
 
-func NewLocal(opts *Opts) LocalActor {
-	return &localActor{Opts: *opts}
+func NewLocal(opts Opts) LocalActor {
+	return &localActor{Opts: opts}
 }
 
 func (l *localActor) Commit(content *string, file *string, branch *string, message *string, overwrite bool) error {
@@ -37,17 +39,20 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 	}
 
 	err = w.Checkout(&git.CheckoutOptions{
-		Create: true,
-		Branch: plumbing.ReferenceName(*branch),
+		Create: false,
+		Branch: plumbing.NewBranchReferenceName(*branch),
 	})
 	if err != nil {
-		err = l.r.CreateBranch(&config.Branch{
-			Name:   *branch,
-			Remote: "origin",
-			Merge:  plumbing.ReferenceName("refs/heads/" + *branch),
-		})
-		if err != nil {
-			return err
+		if _, err := l.r.Head(); err != nil {
+			// before the first commit - skip
+		} else {
+			err = w.Checkout(&git.CheckoutOptions{
+				Create: true,
+				Branch: plumbing.NewBranchReferenceName(*branch),
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -84,4 +89,15 @@ func (l *localActor) Init(path string) error {
 	}
 	l.r = r
 	return nil
+}
+
+func (l *localActor) Push(repoName string) error {
+	_, err := l.r.CreateRemote(&config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{l.RemoteBaseURL + "/" + repoName},
+	})
+	if err != nil {
+		return err
+	}
+	return l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
 }

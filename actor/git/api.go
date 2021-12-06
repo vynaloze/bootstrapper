@@ -5,6 +5,10 @@ type Actor interface {
 }
 
 type Opts struct {
+	RemoteBaseURL  string
+	RemoteAuthUser string
+	RemoteAuthPass string
+
 	DefaultBranch *string
 	AuthorName    *string
 	AuthorEmail   *string

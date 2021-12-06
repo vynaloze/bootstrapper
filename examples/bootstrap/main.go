@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bootstrapper/actor/git"
 	"bootstrapper/blueprint"
 	"bootstrapper/datasource"
 	"fmt"
@@ -17,10 +18,17 @@ func main() {
 	}
 
 	opts := blueprint.BootstrapOpts{
-		EnvVars: map[string]string{"GITHUB_TOKEN": token},
+		Opts: git.Opts{
+			RemoteBaseURL:  "https://github.com/bootstrapper-demo",
+			RemoteAuthUser: "bootstrapper-demo",
+			RemoteAuthPass: token,
+		},
+		TerraformOpts: blueprint.TerraformOpts{
+			ProviderSecrets: map[string]string{"GITHUB_TOKEN": token},
+		},
 	}
 
-	err = blueprint.Bootstrap(opts)
+	err = blueprint.Bootstrap(&opts)
 	if err != nil {
 		fmt.Println(err)
 	}

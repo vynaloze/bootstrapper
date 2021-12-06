@@ -11,7 +11,7 @@ import (
 )
 
 type gitHubActor struct {
-	RemoteOpts
+	Opts
 	client *github.Client
 }
 
@@ -131,26 +131,26 @@ func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
 	return nil
 }
 
-func newGitHubActor(o *RemoteOpts) (RemoteActor, error) {
+func newGitHubActor(o *Opts) (RemoteActor, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: o.Auth},
+		&oauth2.Token{AccessToken: o.RemoteAuthPass},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
 	client := github.NewClient(tc)
 	return &gitHubActor{
-		RemoteOpts: *o,
-		client:     client,
+		Opts:   *o,
+		client: client,
 	}, nil
 }
 
 func (g *gitHubActor) Owner() string {
-	s := strings.Split(g.URL, "/")
+	s := strings.Split(g.RemoteBaseURL, "/")
 	return s[1]
 }
 
 func (g *gitHubActor) Repo() string {
-	s := strings.Split(g.URL, "/")
+	s := strings.Split(g.RemoteBaseURL, "/")
 	return s[2]
 }

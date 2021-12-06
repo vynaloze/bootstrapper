@@ -1,15 +1,17 @@
 package blueprint
 
 type TerraformOpts struct {
-	SharedInfraRepoName     *string
-	SharedInfraBootstrapDir *string
-	SharedInfraCoreDir      *string
+	ProviderSecrets map[string]string
+
+	SharedInfraRepoName      *string
+	TerraformInfraReposFile  *string
+	TerraformModuleReposFile *string
 }
 
 var defaultTerraformOpts = TerraformOpts{
-	SharedInfraRepoName:     ptr("tf-infra-shared"),
-	SharedInfraBootstrapDir: ptr("bootstrap"),
-	SharedInfraCoreDir:      ptr("core"),
+	SharedInfraRepoName:      ptr("tf-infra-shared"),
+	TerraformInfraReposFile:  ptr("core/repos_tf_infra.tf"),
+	TerraformModuleReposFile: ptr("core/repos_tf_module.tf"),
 }
 
 func (o *TerraformOpts) GetSharedInfraRepoName() string {
@@ -19,16 +21,16 @@ func (o *TerraformOpts) GetSharedInfraRepoName() string {
 	return *o.SharedInfraRepoName
 }
 
-func (o *TerraformOpts) GetSharedInfraBootstrapDir() string {
-	if o.SharedInfraBootstrapDir == nil {
-		return *defaultTerraformOpts.SharedInfraBootstrapDir
+func (o *TerraformOpts) GetTerraformInfraReposFile() string {
+	if o.TerraformInfraReposFile == nil {
+		return *defaultTerraformOpts.TerraformInfraReposFile
 	}
-	return *o.SharedInfraBootstrapDir
+	return *o.TerraformInfraReposFile
 }
 
-func (o *TerraformOpts) GetSharedInfraCoreDir() string {
-	if o.SharedInfraCoreDir == nil {
-		return *defaultTerraformOpts.SharedInfraCoreDir
+func (o *TerraformOpts) GetTerraformModuleReposFile() string {
+	if o.TerraformModuleReposFile == nil {
+		return *defaultTerraformOpts.TerraformModuleReposFile
 	}
-	return *o.SharedInfraCoreDir
+	return *o.TerraformModuleReposFile
 }

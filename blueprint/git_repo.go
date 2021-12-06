@@ -9,10 +9,10 @@ import (
 )
 
 func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
-	if strings.Count(opts.RemoteOpts.URL, "/") < 2 {
-		opts.RemoteOpts.URL = opts.RemoteOpts.URL + "/" + opts.GetSharedInfraRepoName()
+	if strings.Count(opts.Opts.RemoteBaseURL, "/") < 2 {
+		opts.Opts.RemoteBaseURL = opts.Opts.RemoteBaseURL + "/" + opts.GetSharedInfraRepoName()
 	}
-	gitActor, err := git.NewRemote(&opts.RemoteOpts)
+	gitActor, err := git.NewRemote(&opts.Opts)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
 		return err
 	}
 
-	targetFile := opts.GetSharedInfraCoreDir() + "/repos.tf"
+	targetFile := "repos.tf" //FIXME
 	branch := fmt.Sprintf("%s/%s/%d", opts.GetAuthorName(), opts.RepoName, time.Now().UnixMilli())
 	message := fmt.Sprintf("[%s] add git repo for %s", opts.GetAuthorName(), opts.RepoName)
 
@@ -39,7 +39,7 @@ func AddApplicationGitRepos() {} //add to existing one (for_each-ed)???
 func CreateApplicationsGitRepos() {}
 
 type ApplicationGitRepoOpts struct {
-	git.RemoteOpts
+	git.Opts
 	TerraformOpts
 	RepoName          string
 	RepoModuleSource  *string
