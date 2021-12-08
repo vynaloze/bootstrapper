@@ -19,12 +19,15 @@ func main() {
 
 	opts := blueprint.BootstrapOpts{
 		Opts: git.Opts{
-			RemoteBaseURL:  "https://github.com/bootstrapper-demo",
+			RemoteBaseURL:  "https://github.com/bootstrapper-demo-org",
 			RemoteAuthUser: "bootstrapper-demo",
 			RemoteAuthPass: token,
 		},
 		TerraformOpts: blueprint.TerraformOpts{
-			ProviderSecrets: map[string]string{"GITHUB_TOKEN": token},
+			ProviderSecrets: map[string]string{
+				"GITHUB_OWNER": "bootstrapper-demo-org",
+				"GITHUB_TOKEN": token,
+			},
 		},
 	}
 

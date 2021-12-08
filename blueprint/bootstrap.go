@@ -5,6 +5,7 @@ import (
 	"bootstrapper/actor/terraform"
 	"bootstrapper/template"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -29,24 +30,29 @@ func (b *BootstrapOpts) getLocalRepoDir() (string, error) {
 }
 
 func Bootstrap(opts *BootstrapOpts) error {
+	log.Printf("starting bootstrap process")
 	gitActor := git.NewLocal(opts.Opts)
 	tfActor, err := terraform.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot initialize Terraform binary: %w", err)
 	}
 
+	log.Printf("initializing local repository: %s", opts.GetSharedInfraRepoName())
 	err = initLocalRepo(gitActor, opts)
 	if err != nil {
 		return err
 	}
+	log.Printf("rendering terraform code")
 	err = callTerraformRepoModule(gitActor, opts)
 	if err != nil {
 		return err
 	}
+	log.Printf("executing terraform apply")
 	err = localApply(*tfActor, opts)
 	if err != nil {
 		return err
 	}
+	log.Printf("pushing changes to created remote repository")
 	err = gitActor.Push(opts.GetSharedInfraRepoName())
 	if err != nil {
 		return err
@@ -65,7 +71,7 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("repo path: " + repoDir) // TODO
+	log.Printf("local repo path: %s", repoDir)
 
 	file := filepath.Join(repoDir, ".gitignore")
 	content := template.TerraformGitignore()
@@ -83,6 +89,7 @@ func callTerraformRepoModule(gitActor git.LocalActor, opts *BootstrapOpts) error
 
 	file := filepath.Join(repoDir, opts.GetTerraformModuleReposFile())
 	content, err := template.TfInfraSharedCoreReposTf(template.TfInfraSharedCoreReposTfOpts{
+		Repos:         []string{"tf-infra-shared"},
 		Strict:        true, //TODO?
 		DefaultBranch: opts.GetDefaultBranch(),
 	})

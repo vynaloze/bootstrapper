@@ -2,13 +2,17 @@ package git
 
 import (
 	"fmt"
+	"github.com/go-git/go-billy/v5/helper/chroot"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 )
@@ -99,5 +103,35 @@ func (l *localActor) Push(repoName string) error {
 	if err != nil {
 		return err
 	}
+
+	err = l.r.Fetch(&git.FetchOptions{RemoteName: "origin"})
+	if err != nil {
+		return err
+	}
+
+	headRef, err := l.r.Head()
+	if err != nil {
+		return err
+	}
+	branch := headRef.Name().Short()
+
+	// go-git does not support rebase so fuck it
+	dir := filepath.Dir(l.r.Storer.(*filesystem.Storage).Filesystem().(*chroot.ChrootHelper).Root())
+	cmd := exec.Command("git", "branch", "--set-upstream-to=origin/"+branch, branch)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		log.Println(string(out))
+		return err
+	}
+
+	cmd = exec.Command("git", "pull", "--rebase")
+	cmd.Dir = dir
+	out, err = cmd.Output()
+	if err != nil {
+		log.Println(string(out))
+		return err
+	}
+
 	return l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
 }

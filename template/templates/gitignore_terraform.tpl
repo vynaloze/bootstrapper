@@ -35,3 +35,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Opt out of dependency locking
+.terraform.lock.hcl

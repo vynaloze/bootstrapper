@@ -20,6 +20,7 @@ func parse(tpl string, data interface{}) ([]byte, error) {
 }
 
 type TfInfraSharedCoreReposTfOpts struct {
+	Repos         []string
 	Strict        bool
 	DefaultBranch string
 }
