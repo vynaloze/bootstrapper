@@ -5,13 +5,15 @@ import (
 	"bootstrapper/actor/terraform"
 	"bootstrapper/template"
 	"fmt"
+	hclencoder_blocks "github.com/rodaine/hclencoder"
+	hclencoder_maps "github.com/vdombrovski/hclencoder"
 	"log"
 	"os"
 	"path/filepath"
 )
 
 type BootstrapOpts struct {
-	git.Opts
+	SharedInfraRepoOpts git.Opts
 	TerraformOpts
 
 	localRepoDir *string
@@ -19,11 +21,11 @@ type BootstrapOpts struct {
 
 func (b *BootstrapOpts) getLocalRepoDir() (string, error) {
 	if b.localRepoDir == nil {
-		dir, err := os.MkdirTemp("", b.GetAuthorName()+"-")
+		dir, err := os.MkdirTemp("", b.SharedInfraRepoOpts.GetAuthorName()+"-")
 		if err != nil {
 			return "", err
 		}
-		repoDir := filepath.Join(dir, b.GetSharedInfraRepoName())
+		repoDir := filepath.Join(dir, b.SharedInfraRepoOpts.Repo)
 		b.localRepoDir = &repoDir
 	}
 	return *b.localRepoDir, nil
@@ -31,19 +33,19 @@ func (b *BootstrapOpts) getLocalRepoDir() (string, error) {
 
 func Bootstrap(opts *BootstrapOpts) error {
 	log.Printf("starting bootstrap process")
-	gitActor := git.NewLocal(opts.Opts)
-	tfActor, err := terraform.New()
+	gitActor := git.NewLocal(opts.SharedInfraRepoOpts)
+	tfActor, err := terraform.New(&opts.Opts)
 	if err != nil {
 		return fmt.Errorf("cannot initialize Terraform binary: %w", err)
 	}
 
-	log.Printf("initializing local repository: %s", opts.GetSharedInfraRepoName())
+	log.Printf("initializing local repository: %s", opts.SharedInfraRepoOpts.Repo)
 	err = initLocalRepo(gitActor, opts)
 	if err != nil {
 		return err
 	}
 	log.Printf("rendering terraform code")
-	err = callTerraformRepoModule(gitActor, opts)
+	err = renderTerraformCode(gitActor, opts)
 	if err != nil {
 		return err
 	}
@@ -53,7 +55,7 @@ func Bootstrap(opts *BootstrapOpts) error {
 		return err
 	}
 	log.Printf("pushing changes to created remote repository")
-	err = gitActor.Push(opts.GetSharedInfraRepoName())
+	err = gitActor.Push()
 	if err != nil {
 		return err
 	}
@@ -75,31 +77,60 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 
 	file := filepath.Join(repoDir, ".gitignore")
 	content := template.TerraformGitignore()
-	branch := opts.GetDefaultBranch()
+	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
 	message := "add .gitignore"
 
 	return gitActor.Commit(&content, &file, &branch, &message, false)
 }
 
-func callTerraformRepoModule(gitActor git.LocalActor, opts *BootstrapOpts) error {
+func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	repoDir, err := opts.getLocalRepoDir()
 	if err != nil {
 		return err
 	}
 
-	file := filepath.Join(repoDir, opts.GetTerraformModuleReposFile())
-	content, err := template.TfInfraSharedCoreReposTf(template.TfInfraSharedCoreReposTfOpts{
-		Repos:         []string{"tf-infra-shared"},
-		Strict:        true, //TODO?
-		DefaultBranch: opts.GetDefaultBranch(),
-	})
+	tfVars := template.TfInfraSharedCoreTfVars{
+		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
+			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true},
+		},
+		TfcOrgName:   opts.TerraformCloudOrg,
+		RepoOwner:    opts.SharedInfraRepoOpts.Project,
+		RepoUser:     opts.SharedInfraRepoOpts.RemoteAuthUser,
+		RepoPassword: opts.SharedInfraRepoOpts.RemoteAuthPass,
+	}
+	tfVarsContent, err := hclencoder_maps.Encode(tfVars)
 	if err != nil {
 		return err
 	}
-	branch := opts.GetDefaultBranch()
-	message := "feat: add tf-shared-infra repo"
 
-	return gitActor.Commit(&content, &file, &branch, &message, false)
+	terraformTf := template.TfInfraSharedCoreTerraformTf{
+		Terraform: template.TfInfraSharedCoreTerraformTfTerraform{
+			Backend: template.TfInfraSharedCoreTerraformTfBackend{
+				Name:         "remote",
+				Hostname:     "app.terraform.io",
+				Organization: opts.TerraformCloudOrg,
+				Workspaces: template.TfInfraSharedCoreTerraformTfWorkspaces{
+					Name: opts.SharedInfraRepoOpts.Repo,
+				},
+			},
+		},
+	}
+	terraformTfContent, err := hclencoder_blocks.Encode(terraformTf)
+	if err != nil {
+		return err
+	}
+
+	files := []git.File{
+		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "repos.tf"), template.TfInfraSharedCoreReposTf},
+		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
+		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "variables.tf"), template.TfInfraSharedCoreVariablesTf},
+		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "versions.tf"), template.TfInfraSharedCoreVersionsTf},
+		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
+	}
+	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
+	message := fmt.Sprintf("feat: add %s repo", opts.SharedInfraRepoOpts.Repo)
+
+	return gitActor.CommitMany(branch, message, files...)
 }
 
 func localApply(tfActor terraform.Actor, opts *BootstrapOpts) error {
@@ -107,12 +138,5 @@ func localApply(tfActor terraform.Actor, opts *BootstrapOpts) error {
 	if err != nil {
 		return err
 	}
-
-	for k, v := range opts.ProviderSecrets {
-		err := os.Setenv(k, v)
-		if err != nil {
-			return err
-		}
-	}
-	return tfActor.Apply(filepath.Dir(filepath.Join(repoDir, opts.GetTerraformInfraReposFile())))
+	return tfActor.Apply(filepath.Join(repoDir, opts.GetTerraformInfraCoreDir()))
 }

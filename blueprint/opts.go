@@ -1,36 +1,19 @@
 package blueprint
 
-type TerraformOpts struct {
-	ProviderSecrets map[string]string
+import "bootstrapper/actor/terraform"
 
-	SharedInfraRepoName      *string
-	TerraformInfraReposFile  *string
-	TerraformModuleReposFile *string
+type TerraformOpts struct {
+	terraform.Opts
+	TerraformInfraCoreDir *string
 }
 
 var defaultTerraformOpts = TerraformOpts{
-	SharedInfraRepoName:      ptr("tf-infra-shared"),
-	TerraformInfraReposFile:  ptr("core/repos_tf_infra.tf"),
-	TerraformModuleReposFile: ptr("core/repos_tf_module.tf"),
+	TerraformInfraCoreDir: ptr("core"),
 }
 
-func (o *TerraformOpts) GetSharedInfraRepoName() string {
-	if o.SharedInfraRepoName == nil {
-		return *defaultTerraformOpts.SharedInfraRepoName
+func (o *TerraformOpts) GetTerraformInfraCoreDir() string {
+	if o.TerraformInfraCoreDir == nil {
+		return *defaultTerraformOpts.TerraformInfraCoreDir
 	}
-	return *o.SharedInfraRepoName
-}
-
-func (o *TerraformOpts) GetTerraformInfraReposFile() string {
-	if o.TerraformInfraReposFile == nil {
-		return *defaultTerraformOpts.TerraformInfraReposFile
-	}
-	return *o.TerraformInfraReposFile
-}
-
-func (o *TerraformOpts) GetTerraformModuleReposFile() string {
-	if o.TerraformModuleReposFile == nil {
-		return *defaultTerraformOpts.TerraformModuleReposFile
-	}
-	return *o.TerraformModuleReposFile
+	return *o.TerraformInfraCoreDir
 }

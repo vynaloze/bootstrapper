@@ -2,7 +2,6 @@ package git
 
 import (
 	"fmt"
-	"strings"
 )
 
 type RemoteActor interface {
@@ -11,8 +10,8 @@ type RemoteActor interface {
 }
 
 func NewRemote(opts *Opts) (RemoteActor, error) {
-	if strings.Contains(opts.RemoteBaseURL, "github.com") {
+	if opts.Provider == "github.com" {
 		return newGitHubActor(opts)
 	}
-	return nil, fmt.Errorf("unsupported Git provider")
+	return nil, fmt.Errorf("unsupported Git provider: %s", opts.Provider)
 }

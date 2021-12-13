@@ -86,3 +86,32 @@ func sortedKeys(m map[string]TerraformProvider) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+type TfInfraSharedCoreTfVars struct {
+	TfInfraRepos map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_infra_repos"`
+
+	TfcOrgName   string `hcl:"tfc_org_name"`
+	RepoOwner    string `hcl:"repo_owner"`
+	RepoUser     string `hcl:"repo_user"`
+	RepoPassword string `hcle:"omit"`
+}
+type TfInfraSharedCoreTfVarsRepo struct {
+	DefaultBranch string `hcl:"default_branch"`
+	Strict        bool   `hcl:"strict"`
+}
+
+type TfInfraSharedCoreTerraformTf struct {
+	Terraform TfInfraSharedCoreTerraformTfTerraform `hcl:"terraform,block"`
+}
+type TfInfraSharedCoreTerraformTfTerraform struct {
+	Backend TfInfraSharedCoreTerraformTfBackend `hcl:"backend,block"`
+}
+type TfInfraSharedCoreTerraformTfBackend struct {
+	Name         string                                 `hcl:",key"`
+	Hostname     string                                 `hcl:"hostname"`
+	Organization string                                 `hcl:"organization"`
+	Workspaces   TfInfraSharedCoreTerraformTfWorkspaces `hcl:"workspaces,block"`
+}
+type TfInfraSharedCoreTerraformTfWorkspaces struct {
+	Name string `hcl:"name"`
+}

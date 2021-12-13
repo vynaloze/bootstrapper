@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 	"net/http"
-	"strings"
 )
 
 type gitHubActor struct {
@@ -146,11 +145,9 @@ func newGitHubActor(o *Opts) (RemoteActor, error) {
 }
 
 func (g *gitHubActor) Owner() string {
-	s := strings.Split(g.RemoteBaseURL, "/")
-	return s[1]
+	return g.Opts.Project
 }
 
 func (g *gitHubActor) Repo() string {
-	s := strings.Split(g.RemoteBaseURL, "/")
-	return s[2]
+	return g.Opts.Repo
 }

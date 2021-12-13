@@ -1,36 +1,37 @@
+provider "github" {
+  owner = var.repo_owner
+  token = var.repo_password
+}
+
 resource "github_actions_organization_permissions" "this" {
   allowed_actions      = "local_only"
   enabled_repositories = "selected"
 
   enabled_repositories_config {
-    repository_ids = [for k, v in module.repo_tf_infra: v.repository.repo_id]
+    repository_ids = [for k, v in module.repo_tf_infra : v.repository.repo_id]
   }
 }
 
 module "repo_tf_infra" {
-  for_each = toset([
-    {{- range $_, $value := .Repos }}
-    "{{ $value }}",
-    {{- end }}
-  ])
+  for_each = var.tf_infra_repos
 
   source  = "mineiros-io/repository/github"
   version = "~> 0.11.0"
 
-  name           = "tf-infra-shared"
+  name           = each.key
   visibility     = "public" #FIXME
   auto_init      = true
-  default_branch = "{{ .DefaultBranch }}"
+  default_branch = each.value.default_branch
 
   allow_rebase_merge     = true
-  allow_merge_commit     = {{ not .Strict }}
+  allow_merge_commit     = !each.value.strict
   delete_branch_on_merge = true
 
   branch_protections_v3 = [
     {
-      branch         = "{{ .DefaultBranch }}"
-      required_status_checks = {
-        strict   = {{ .Strict }}
+      branch                        = each.value.default_branch
+      required_status_checks        = {
+        strict   = each.value.strict
         contexts = ["ci/TODO"] #TODO
       }
       required_pull_request_reviews = {

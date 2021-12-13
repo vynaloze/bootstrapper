@@ -11,11 +11,19 @@ import (
 	"log"
 )
 
-type Actor struct {
-	execPath string
+type Opts struct {
+	TerraformCloudOrg   string
+	TerraformCloudToken string
+
+	TfVars map[string]string
 }
 
-func New() (*Actor, error) {
+type Actor struct {
+	execPath string
+	opts     *Opts
+}
+
+func New(opts *Opts) (*Actor, error) {
 	var execPath string
 	execPath, err := tfinstall.Find(context.Background(), tfinstall.LookPath())
 	if err != nil {
@@ -30,11 +38,21 @@ func New() (*Actor, error) {
 			return nil, fmt.Errorf("error installing Terraform: %w", err)
 		}
 	}
-	return &Actor{execPath}, nil
+	return &Actor{execPath, opts}, nil
 }
 
 func (a *Actor) Apply(dir string) error {
 	tf, err := tfexec.NewTerraform(dir, a.execPath)
+	if err != nil {
+		return fmt.Errorf("error running Terraform: %w", err)
+	}
+	tf.SetLogger(log.Default())
+
+	err = a.writeCliConfigFile(dir)
+	if err != nil {
+		return fmt.Errorf("error running Terraform: %w", err)
+	}
+	err = a.writeTfVarsFile(dir)
 	if err != nil {
 		return fmt.Errorf("error running Terraform: %w", err)
 	}

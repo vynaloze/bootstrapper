@@ -2,6 +2,7 @@ package main
 
 import (
 	"bootstrapper/actor/git"
+	"bootstrapper/actor/terraform"
 	"bootstrapper/blueprint"
 	"bootstrapper/datasource"
 	"fmt"
@@ -12,21 +13,31 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	token, ok := secrets.Get("actor.git.github.token")
+	ghToken, ok := secrets.Get("actor.git.github.token")
+	if !ok {
+		panic(err)
+	}
+	tfcToken, ok := secrets.Get("actor.terraform.tfc.token")
 	if !ok {
 		panic(err)
 	}
 
 	opts := blueprint.BootstrapOpts{
-		Opts: git.Opts{
-			RemoteBaseURL:  "https://github.com/bootstrapper-demo-org",
+		SharedInfraRepoOpts: git.Opts{
+			Provider: "github.com",
+			Project:  "bootstrapper-demo-org",
+			Repo:     "tf-infra-shared",
+
 			RemoteAuthUser: "bootstrapper-demo",
-			RemoteAuthPass: token,
+			RemoteAuthPass: ghToken,
 		},
 		TerraformOpts: blueprint.TerraformOpts{
-			ProviderSecrets: map[string]string{
-				"GITHUB_OWNER": "bootstrapper-demo-org",
-				"GITHUB_TOKEN": token,
+			Opts: terraform.Opts{
+				TerraformCloudOrg:   "bootstrapper-demo",
+				TerraformCloudToken: tfcToken,
+				TfVars: map[string]string{
+					"repo_password": ghToken,
+				},
 			},
 		},
 	}

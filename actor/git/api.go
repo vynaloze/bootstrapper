@@ -1,10 +1,16 @@
 package git
 
+import "fmt"
+
 type Actor interface {
 	Commit(content *string, file *string, branch *string, message *string, overwrite bool) error
 }
 
 type Opts struct {
+	Provider string
+	Project  string
+	Repo     string
+
 	RemoteBaseURL  string
 	RemoteAuthUser string
 	RemoteAuthPass string
@@ -18,6 +24,10 @@ var defaultOpts = Opts{
 	DefaultBranch: ptr("main"),
 	AuthorName:    ptr("bootstrapper"),
 	AuthorEmail:   ptr("bootstrapper@example.com"),
+}
+
+func (o *Opts) GetRemoteURL() string {
+	return fmt.Sprintf("https://%s/%s/%s", o.Provider, o.Project, o.Repo)
 }
 
 func (o *Opts) GetDefaultBranch() string {

@@ -19,19 +19,13 @@ func parse(tpl string, data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type TfInfraSharedCoreReposTfOpts struct {
-	Repos         []string
-	Strict        bool
-	DefaultBranch string
-}
+//TODO dynamic with provider
+//go:embed templates/tf-infra-shared/core/repos_github.tf
+var TfInfraSharedCoreReposTf string
 
-//go:embed templates/tf-infra-shared/core/repos.tf.tpl
-var tfInfraSharedCoreReposTf string
+//go:embed templates/tf-infra-shared/core/variables.tf
+var TfInfraSharedCoreVariablesTf string
 
-func TfInfraSharedCoreReposTf(data TfInfraSharedCoreReposTfOpts) (string, error) {
-	parsed, err := parse(tfInfraSharedCoreReposTf, data)
-	if err != nil {
-		return "", err
-	}
-	return string(parsed), nil
-}
+//TODO dynamic with provider
+//go:embed templates/tf-infra-shared/core/versions_github.tf
+var TfInfraSharedCoreVersionsTf string

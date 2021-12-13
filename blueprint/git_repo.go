@@ -4,14 +4,10 @@ import (
 	"bootstrapper/actor/git"
 	"bootstrapper/template"
 	"fmt"
-	"strings"
 	"time"
 )
 
 func CreateApplicationGitRepo(opts ApplicationGitRepoOpts) error {
-	if strings.Count(opts.Opts.RemoteBaseURL, "/") < 2 {
-		opts.Opts.RemoteBaseURL = opts.Opts.RemoteBaseURL + "/" + opts.GetSharedInfraRepoName()
-	}
 	gitActor, err := git.NewRemote(&opts.Opts)
 	if err != nil {
 		return err

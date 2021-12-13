@@ -19,8 +19,14 @@ import (
 
 type LocalActor interface {
 	Actor
+	CommitMany(branch string, message string, files ...File) error
 	Init(path string) error
-	Push(repoName string) error
+	Push() error
+}
+
+type File struct {
+	Filename string
+	Content  string
 }
 
 type localActor struct {
@@ -37,6 +43,10 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 		return fmt.Errorf("file %s already exists and overwrite=false", *file)
 	}
 
+	return l.CommitMany(*branch, *message, File{*file, *content})
+}
+
+func (l *localActor) CommitMany(branch string, message string, files ...File) error {
 	w, err := l.r.Worktree()
 	if err != nil {
 		return err
@@ -44,7 +54,7 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 
 	err = w.Checkout(&git.CheckoutOptions{
 		Create: false,
-		Branch: plumbing.NewBranchReferenceName(*branch),
+		Branch: plumbing.NewBranchReferenceName(branch),
 	})
 	if err != nil {
 		if _, err := l.r.Head(); err != nil {
@@ -52,7 +62,7 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 		} else {
 			err = w.Checkout(&git.CheckoutOptions{
 				Create: true,
-				Branch: plumbing.NewBranchReferenceName(*branch),
+				Branch: plumbing.NewBranchReferenceName(branch),
 			})
 			if err != nil {
 				return err
@@ -60,15 +70,17 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 		}
 	}
 
-	parent := filepath.Dir(*file)
-	if parent != string(os.PathSeparator) && parent != "." {
-		// needs to create a directory
-		_ = os.Mkdir(parent, 0644) // ignore errors if directory exists
-	}
+	for _, file := range files {
+		parent := filepath.Dir(file.Filename)
+		if parent != string(os.PathSeparator) && parent != "." {
+			// needs to create a directory
+			_ = os.Mkdir(parent, 0644) // ignore errors if directory exists
+		}
 
-	err = ioutil.WriteFile(*file, []byte(*content), 0644)
-	if err != nil {
-		return err
+		err = ioutil.WriteFile(file.Filename, []byte(file.Content), 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = w.Add(".")
@@ -76,7 +88,7 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 		return err
 	}
 
-	_, err = w.Commit(*message, &git.CommitOptions{
+	_, err = w.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  l.GetAuthorName(),
 			Email: l.GetAuthorEmail(),
@@ -95,10 +107,10 @@ func (l *localActor) Init(path string) error {
 	return nil
 }
 
-func (l *localActor) Push(repoName string) error {
+func (l *localActor) Push() error {
 	_, err := l.r.CreateRemote(&config.RemoteConfig{
 		Name: "origin",
-		URLs: []string{l.RemoteBaseURL + "/" + repoName},
+		URLs: []string{l.GetRemoteURL()},
 	})
 	if err != nil {
 		return err

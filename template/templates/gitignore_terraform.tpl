@@ -23,6 +23,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+*_override.auto.tfvars
 
 # Include override files you do wish to add to version control using negated pattern
 #
@@ -34,6 +35,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+*.tfrc
 
 # Opt out of dependency locking
 .terraform.lock.hcl
