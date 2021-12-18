@@ -89,6 +89,7 @@ func sortedKeys(m map[string]TerraformProvider) []string {
 
 type TfInfraSharedCoreTfVars struct {
 	TfInfraRepos map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_infra_repos"`
+	MiscRepos    map[string]TfInfraSharedCoreTfVarsRepo `hcl:"misc_repos"`
 
 	TfcOrgName   string `hcl:"tfc_org_name"`
 	RepoOwner    string `hcl:"repo_owner"`

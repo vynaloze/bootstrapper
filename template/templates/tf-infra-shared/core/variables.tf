@@ -7,6 +7,15 @@ variable "tf_infra_repos" {
   }))
 }
 
+variable "misc_repos" {
+  description = "Miscellaneous repositories to create, keyed by repo name"
+
+  type = map(object({
+    default_branch = string
+    strict         = bool
+  }))
+}
+
 variable "tfc_org_name" {
   description = "Terraform Cloud organization name"
 

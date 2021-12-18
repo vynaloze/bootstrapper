@@ -22,15 +22,20 @@ func main() {
 		panic(err)
 	}
 
-	opts := blueprint.BootstrapOpts{
-		SharedInfraRepoOpts: git.Opts{
-			Provider: "github.com",
-			Project:  "bootstrapper-demo-org",
-			Repo:     "tf-infra-shared",
+	commonGitOpts := git.Opts{
+		Provider: "github.com",
+		Project:  "bootstrapper-demo-org",
 
-			RemoteAuthUser: "bootstrapper-demo",
-			RemoteAuthPass: ghToken,
-		},
+		RemoteAuthUser: "bootstrapper-demo",
+		RemoteAuthPass: ghToken,
+	}
+	sharedInfraGitOpts, cicdRepoOpts := commonGitOpts, commonGitOpts
+	sharedInfraGitOpts.Repo = "tf-infra-shared"
+	cicdRepoOpts.Repo = "cicd"
+
+	opts := blueprint.BootstrapOpts{
+		SharedInfraRepoOpts: sharedInfraGitOpts,
+		CICDRepoOpts:        cicdRepoOpts,
 		TerraformOpts: blueprint.TerraformOpts{
 			Opts: terraform.Opts{
 				TerraformCloudOrg:   "bootstrapper-demo",

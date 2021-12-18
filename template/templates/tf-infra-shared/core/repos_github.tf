@@ -4,16 +4,24 @@ provider "github" {
 }
 
 resource "github_actions_organization_permissions" "this" {
-  allowed_actions      = "local_only"
+  allowed_actions      = "selected"
   enabled_repositories = "selected"
 
+  allowed_actions_config {
+    github_owned_allowed = true
+    verified_allowed     = true
+  }
+
   enabled_repositories_config {
-    repository_ids = [for k, v in module.repo_tf_infra : v.repository.repo_id]
+    repository_ids = [for k, v in module.github_repos : v.repository.repo_id]
   }
 }
 
-module "repo_tf_infra" {
-  for_each = var.tf_infra_repos
+module "github_repos" {
+  for_each = merge(
+    var.tf_infra_repos,
+    var.misc_repos,
+  )
 
   source  = "mineiros-io/repository/github"
   version = "~> 0.11.0"
@@ -29,8 +37,8 @@ module "repo_tf_infra" {
 
   branch_protections_v3 = [
     {
-      branch                        = each.value.default_branch
-      required_status_checks        = {
+      branch = each.value.default_branch
+      required_status_checks = {
         strict   = each.value.strict
         contexts = ["ci/TODO"] #TODO
       }

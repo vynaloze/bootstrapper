@@ -14,6 +14,7 @@ import (
 
 type BootstrapOpts struct {
 	SharedInfraRepoOpts git.Opts
+	CICDRepoOpts        git.Opts
 	TerraformOpts
 
 	localRepoDir *string
@@ -93,6 +94,9 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
 			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true},
 		},
+		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
+			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true},
+		},
 		TfcOrgName:   opts.TerraformCloudOrg,
 		RepoOwner:    opts.SharedInfraRepoOpts.Project,
 		RepoUser:     opts.SharedInfraRepoOpts.RemoteAuthUser,
@@ -128,7 +132,7 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
 	}
 	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
-	message := fmt.Sprintf("feat: add %s repo", opts.SharedInfraRepoOpts.Repo)
+	message := fmt.Sprintf("feat: add %s and %s repos", opts.SharedInfraRepoOpts.Repo, opts.CICDRepoOpts.Repo)
 
 	return gitActor.CommitMany(branch, message, files...)
 }
