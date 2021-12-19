@@ -1,0 +1,19 @@
+name: '[[ .Module ]] -- [[ .Workflow ]]'
+
+on:
+  push:
+    branches [[- if not .OnDefaultBranch ]]-ignore[[ end ]]:
+      - $default-branch
+    paths:
+      - '[[ .Module ]]/**'
+      - '.github/workflows/**'
+
+jobs:
+  [[ .Module ]]:
+    uses: [[ .Project ]]/[[ .Repo ]]/pipelines/github/terraform_infra/[[ .Workflow ]]/workflow.yml@[[ .DefaultBranch ]]
+    with:
+      workdir: [[ .Module ]]
+    secrets:
+      tf_api_token: ${{ secrets.TF_API_TOKEN }}
+      tf_vars: |
+        repo_password = "${{ secrets.TF_VAR_REPO_PASSWORD }}"

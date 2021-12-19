@@ -1,0 +1,41 @@
+on:
+  workflow_call:
+    inputs:
+      workdir:
+        required: true
+        type: string
+    secrets:
+      tf_api_token:
+        required: true
+      tf_vars:
+        required: true
+
+jobs:
+  ci:
+    name: 'ci'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ inputs.workdir }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          cli_config_credentials_token: ${{ secrets.tf_api_token }}
+
+      - name: init
+        run: terraform init
+
+      - name: fmt check
+        run: terraform fmt -check
+
+      - name: setup variables
+        run: echo -e '${{ secrets.tf_vars }}' > secrets_override.auto.tfvars
+
+      - name: plan
+        run: terraform plan

@@ -34,7 +34,7 @@ func (b *BootstrapOpts) getLocalRepoDir() (string, error) {
 
 func Bootstrap(opts *BootstrapOpts) error {
 	log.Printf("starting bootstrap process")
-	gitActor := git.NewLocal(opts.SharedInfraRepoOpts)
+	gitActor := git.NewLocal(&opts.SharedInfraRepoOpts)
 	tfActor, err := terraform.New(&opts.Opts)
 	if err != nil {
 		return fmt.Errorf("cannot initialize Terraform binary: %w", err)
@@ -76,7 +76,7 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	}
 	log.Printf("local repo path: %s", repoDir)
 
-	file := filepath.Join(repoDir, ".gitignore")
+	file := ".gitignore"
 	content := template.TerraformGitignore()
 	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
 	message := "add .gitignore"
@@ -85,11 +85,6 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 }
 
 func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
-	repoDir, err := opts.getLocalRepoDir()
-	if err != nil {
-		return err
-	}
-
 	tfVars := template.TfInfraSharedCoreTfVars{
 		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
 			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true},
@@ -125,11 +120,11 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	}
 
 	files := []git.File{
-		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "repos.tf"), template.TfInfraSharedCoreReposTf},
-		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
-		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "variables.tf"), template.TfInfraSharedCoreVariablesTf},
-		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "versions.tf"), template.TfInfraSharedCoreVersionsTf},
-		{filepath.Join(repoDir, opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "repos.tf"), template.TfInfraSharedCoreReposTf},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "variables.tf"), template.TfInfraSharedCoreVariablesTf},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "versions.tf"), template.TfInfraSharedCoreVersionsTf},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
 	}
 	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
 	message := fmt.Sprintf("feat: add %s and %s repos", opts.SharedInfraRepoOpts.Repo, opts.CICDRepoOpts.Repo)

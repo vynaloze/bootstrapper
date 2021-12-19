@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-git/go-billy/v5/helper/chroot"
 	"github.com/go-git/go-git/v5"
@@ -30,11 +31,12 @@ type File struct {
 }
 
 type localActor struct {
-	Opts
-	r *git.Repository
+	*Opts
+	r       *git.Repository
+	repoDir string
 }
 
-func NewLocal(opts Opts) LocalActor {
+func NewLocal(opts *Opts) LocalActor {
 	return &localActor{Opts: opts}
 }
 
@@ -47,9 +49,16 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 }
 
 func (l *localActor) CommitMany(branch string, message string, files ...File) error {
+	if l.r == nil {
+		err := l.clone()
+		if err != nil {
+			return fmt.Errorf("error cloning repository: %w", err)
+		}
+	}
+
 	w, err := l.r.Worktree()
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating worktree: %w", err)
 	}
 
 	err = w.Checkout(&git.CheckoutOptions{
@@ -65,27 +74,31 @@ func (l *localActor) CommitMany(branch string, message string, files ...File) er
 				Branch: plumbing.NewBranchReferenceName(branch),
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("error checking out %s: %w", branch, err)
 			}
 		}
 	}
 
 	for _, file := range files {
-		parent := filepath.Dir(file.Filename)
+		fullPath := filepath.Join(l.repoDir, file.Filename)
+		parent := filepath.Dir(fullPath)
 		if parent != string(os.PathSeparator) && parent != "." {
 			// needs to create a directory
-			_ = os.Mkdir(parent, 0644) // ignore errors if directory exists
+			err := os.MkdirAll(parent, 0644)
+			if err != nil {
+				return fmt.Errorf("error creating directory %s: %w", parent, err)
+			}
 		}
 
-		err = ioutil.WriteFile(file.Filename, []byte(file.Content), 0644)
+		err := ioutil.WriteFile(fullPath, []byte(file.Content), 0644)
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing file %s: %w", file.Filename, err)
 		}
 	}
 
 	_, err = w.Add(".")
 	if err != nil {
-		return err
+		return fmt.Errorf("error adding changes to staging area: %w", err)
 	}
 
 	_, err = w.Commit(message, &git.CommitOptions{
@@ -95,7 +108,30 @@ func (l *localActor) CommitMany(branch string, message string, files ...File) er
 			When:  time.Now(),
 		},
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("error comitting changes: %w", err)
+	}
+	return nil
+}
+
+func (l *localActor) clone() error {
+	dir, err := os.MkdirTemp("", l.GetAuthorName()+"-")
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(dir, l.Repo)
+	l.repoDir = path
+
+	r, err := git.PlainClone(path, false, &git.CloneOptions{
+		URL:  l.GetRemoteURL(),
+		Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass},
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("cloned %s to %s", l.GetRemoteURL(), path)
+	l.r = r
+	return nil
 }
 
 func (l *localActor) Init(path string) error {
@@ -104,23 +140,41 @@ func (l *localActor) Init(path string) error {
 		return err
 	}
 	l.r = r
+	l.repoDir = path
 	return nil
 }
 
 func (l *localActor) Push() error {
-	_, err := l.r.CreateRemote(&config.RemoteConfig{
-		Name: "origin",
-		URLs: []string{l.GetRemoteURL()},
-	})
+	remotes, err := l.r.Remotes()
 	if err != nil {
 		return err
+	}
+	if len(remotes) == 0 {
+		_, err := l.r.CreateRemote(&config.RemoteConfig{
+			Name: "origin",
+			URLs: []string{l.GetRemoteURL()},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = l.r.Fetch(&git.FetchOptions{RemoteName: "origin"})
 	if err != nil {
-		return err
+		if !errors.Is(err, git.NoErrAlreadyUpToDate) {
+			return err
+		}
+	} else {
+		err := l.rebase()
+		if err != nil {
+			return err
+		}
 	}
 
+	return l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
+}
+
+func (l *localActor) rebase() error {
 	headRef, err := l.r.Head()
 	if err != nil {
 		return err
@@ -144,6 +198,5 @@ func (l *localActor) Push() error {
 		log.Println(string(out))
 		return err
 	}
-
-	return l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
+	return nil
 }

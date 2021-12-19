@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
+	"log"
 	"net/http"
 )
 
@@ -126,7 +127,7 @@ func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("PR created: %s\n", pr.GetHTMLURL())
+	log.Printf("PR created: %s\n", pr.GetHTMLURL())
 	return nil
 }
 
