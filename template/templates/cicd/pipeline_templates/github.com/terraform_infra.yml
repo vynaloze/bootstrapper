@@ -1,4 +1,4 @@
-name: '[[ .Module ]] -- [[ .Workflow ]]'
+name: '[[ .Module ]]_[[ .Workflow ]]'
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
       - '.github/workflows/**'
 
 jobs:
-  [[ .Module ]]:
-    uses: [[ .Project ]]/[[ .Repo ]]/pipelines/github/terraform_infra/[[ .Workflow ]]/workflow.yml@[[ .DefaultBranch ]]
+  terraform:
+    uses: [[ .Project ]]/[[ .Repo ]]/pipelines/github/terraform_infra_[[ .Workflow ]].yml@[[ .DefaultBranch ]]
     with:
       workdir: [[ .Module ]]
     secrets:

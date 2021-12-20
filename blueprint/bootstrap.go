@@ -87,10 +87,10 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	tfVars := template.TfInfraSharedCoreTfVars{
 		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true},
+			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true, []string{"terraform / ci"}},
 		},
 		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true},
+			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true, []string{}},
 		},
 		TfcOrgName:   opts.TerraformCloudOrg,
 		RepoOwner:    opts.SharedInfraRepoOpts.Project,

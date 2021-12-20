@@ -38,10 +38,10 @@ module "github_repos" {
   branch_protections_v3 = [
     {
       branch = each.value.default_branch
-      required_status_checks = {
+      required_status_checks = each.value.build_checks != null && length(each.value.build_checks) > 0 ? {
         strict   = each.value.strict
-        contexts = ["ci/TODO"] #TODO
-      }
+        contexts = each.value.build_checks
+      } : {}
       required_pull_request_reviews = {
         dismiss_stale_reviews           = true
         require_code_owner_reviews      = true

@@ -78,7 +78,7 @@ func isAlreadyProcessed(file string, processedDirs []string) bool {
 	return false
 }
 
-//go:embed templates
+//go:embed templates templates/cicd/*
 var templates embed.FS
 
 //TODO dynamic with provider

@@ -97,8 +97,9 @@ type TfInfraSharedCoreTfVars struct {
 	RepoPassword string `hcle:"omit"`
 }
 type TfInfraSharedCoreTfVarsRepo struct {
-	DefaultBranch string `hcl:"default_branch"`
-	Strict        bool   `hcl:"strict"`
+	DefaultBranch string   `hcl:"default_branch"`
+	Strict        bool     `hcl:"strict"`
+	BuildChecks   []string `hcl:"build_checks"`
 }
 
 type TfInfraSharedCoreTerraformTf struct {

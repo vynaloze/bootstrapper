@@ -4,6 +4,7 @@ variable "tf_infra_repos" {
   type = map(object({
     default_branch = string
     strict         = bool
+    build_check    = list(string)
   }))
 }
 
@@ -13,6 +14,7 @@ variable "misc_repos" {
   type = map(object({
     default_branch = string
     strict         = bool
+    build_check    = list(string)
   }))
 }
 
