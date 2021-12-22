@@ -41,8 +41,9 @@ func NewLocal(opts *Opts) LocalActor {
 }
 
 func (l *localActor) Commit(content *string, file *string, branch *string, message *string, overwrite bool) error {
-	if _, err := os.Stat(*file); !os.IsNotExist(err) && !overwrite {
-		return fmt.Errorf("file %s already exists and overwrite=false", *file)
+	fullPath := filepath.Join(l.repoDir, *file)
+	if _, err := os.Stat(fullPath); !os.IsNotExist(err) && !overwrite {
+		return fmt.Errorf("file %s already exists and overwrite=false", fullPath)
 	}
 
 	return l.CommitMany(*branch, *message, File{*file, *content})

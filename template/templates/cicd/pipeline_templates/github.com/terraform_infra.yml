@@ -3,14 +3,14 @@ name: '[[ .Module ]]_[[ .Workflow ]]'
 on:
   push:
     branches [[- if not .OnDefaultBranch ]]-ignore[[ end ]]:
-      - $default-branch
+      - [[ .DefaultBranch ]]
     paths:
       - '[[ .Module ]]/**'
       - '.github/workflows/**'
 
 jobs:
   terraform:
-    uses: [[ .Project ]]/[[ .Repo ]]/pipelines/github/terraform_infra_[[ .Workflow ]].yml@[[ .DefaultBranch ]]
+    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/terraform_infra_[[ .Workflow ]].yml@[[ .DefaultBranch ]]
     with:
       workdir: [[ .Module ]]
     secrets:

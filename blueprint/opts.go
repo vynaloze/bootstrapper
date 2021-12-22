@@ -17,3 +17,9 @@ func (o *TerraformOpts) GetTerraformInfraCoreDir() string {
 	}
 	return *o.TerraformInfraCoreDir
 }
+
+type Template struct {
+	SourceFile string
+	Data       interface{}
+	TargetFile string
+}

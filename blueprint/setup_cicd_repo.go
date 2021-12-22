@@ -13,15 +13,6 @@ type SetupCICDRepoOpts struct {
 	// TODO decide what templates to render (or all?)
 }
 
-type TerraformInfraTemplate struct {
-	Project         string
-	Repo            string
-	Module          string
-	Workflow        string
-	DefaultBranch   string
-	OnDefaultBranch bool
-}
-
 func SetupCICDRepo(opts *SetupCICDRepoOpts) error {
 	log.Printf("setting up CICD repo")
 
@@ -62,3 +53,11 @@ func SetupCICDRepo(opts *SetupCICDRepoOpts) error {
 
 	return nil
 }
+
+// TODO
+// 1. recreate all existing infra
+// 2. make final, correct terraform_infra_ci.yml
+// 3. create terraform_infra_cd.yml
+// 4. run this
+// 5. add both workflows to tf-infra-shared (new blueprint "addCICDToRepo()" or sth) - should be no changes
+// 6. proceed with the plan

@@ -11,8 +11,8 @@ on:
         required: true
 
 jobs:
-  ci:
-    name: 'ci'
+  cd:
+    name: 'cd'
     runs-on: ubuntu-latest
 
     defaults:
@@ -31,24 +31,7 @@ jobs:
       - name: init
         run: terraform init
 
-      - name: fmt check
-        run: terraform fmt -recursive -check
-
-      - name: validate
-        run: terraform validate
-
-      - name: linter
-        run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/v0.28.1/install_linux.sh | bash
-          TFLINT_LOG=info tflint . -c ../.tflint.hcl
-
-      - name: security check
-        uses: bridgecrewio/checkov-action@v12.1128.0
-        with:
-          directory: .
-          framework: terraform
-
-      - name: plan
+      - name: apply
         run: |
           echo -e '${{ secrets.tf_vars }}' > secrets_override.auto.tfvars
-          terraform plan
+          terraform apply -auto-approve

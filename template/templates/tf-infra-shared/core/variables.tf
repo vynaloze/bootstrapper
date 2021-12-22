@@ -4,7 +4,7 @@ variable "tf_infra_repos" {
   type = map(object({
     default_branch = string
     strict         = bool
-    build_check    = list(string)
+    build_checks   = list(string)
   }))
 }
 
@@ -14,14 +14,8 @@ variable "misc_repos" {
   type = map(object({
     default_branch = string
     strict         = bool
-    build_check    = list(string)
+    build_checks   = list(string)
   }))
-}
-
-variable "tfc_org_name" {
-  description = "Terraform Cloud organization name"
-
-  type = string
 }
 
 variable "repo_owner" {
@@ -30,8 +24,10 @@ variable "repo_owner" {
   type = string
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "repo_user" {
   description = "Repository access username (or empty)"
+  default     = ""
 
   type = string
 }

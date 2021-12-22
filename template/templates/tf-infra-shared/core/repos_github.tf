@@ -26,10 +26,11 @@ module "github_repos" {
   source  = "mineiros-io/repository/github"
   version = "~> 0.11.0"
 
-  name           = each.key
-  visibility     = "public" #FIXME
-  auto_init      = true
-  default_branch = each.value.default_branch
+  name               = each.key
+  visibility         = "public" #FIXME
+  auto_init          = true
+  default_branch     = each.value.default_branch
+  archive_on_destroy = false #FIXME?
 
   allow_rebase_merge     = true
   allow_merge_commit     = !each.value.strict
@@ -38,10 +39,10 @@ module "github_repos" {
   branch_protections_v3 = [
     {
       branch = each.value.default_branch
-      required_status_checks = each.value.build_checks != null && length(each.value.build_checks) > 0 ? {
+      required_status_checks = try(each.value.build_checks != null && length(each.value.build_checks) > 0 ? {
         strict   = each.value.strict
         contexts = each.value.build_checks
-      } : {}
+      } : tomap(false), {}) # workaround: see https://github.com/hashicorp/terraform/issues/22405#issuecomment-591917758
       required_pull_request_reviews = {
         dismiss_stale_reviews           = true
         require_code_owner_reviews      = true
