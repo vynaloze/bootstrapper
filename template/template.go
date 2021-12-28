@@ -3,7 +3,6 @@ package template
 import (
 	"bytes"
 	"embed"
-	_ "embed"
 	"fmt"
 	"strings"
 	"text/template"
@@ -80,14 +79,3 @@ func isAlreadyProcessed(file string, processedDirs []string) bool {
 
 //go:embed templates templates/cicd/* templates/cicd/pipeline_templates/*
 var templates embed.FS
-
-//TODO dynamic with provider
-//go:embed templates/tf-infra-shared/core/repos_github.tf
-var TfInfraSharedCoreReposTf string
-
-//go:embed templates/tf-infra-shared/core/variables.tf
-var TfInfraSharedCoreVariablesTf string
-
-//TODO dynamic with provider
-//go:embed templates/tf-infra-shared/core/versions_github.tf
-var TfInfraSharedCoreVersionsTf string

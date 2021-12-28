@@ -7,6 +7,7 @@ import (
 	"bootstrapper/datasource"
 	"bootstrapper/template"
 	"fmt"
+	"log"
 )
 
 func main() {
@@ -52,7 +53,7 @@ func main() {
 
 	err = blueprint.Bootstrap(&opts)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 
 	fmt.Println("Press Enter to proceed")
@@ -64,7 +65,7 @@ func main() {
 
 	err = blueprint.SetupCICDRepo(&opts2)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 
 	fmt.Println("Press Enter to proceed")
@@ -107,6 +108,6 @@ func main() {
 
 	err = blueprint.AddCICDToRepo(&opts3)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 }

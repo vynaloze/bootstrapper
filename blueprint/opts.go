@@ -23,3 +23,8 @@ type Template struct {
 	Data       interface{}
 	TargetFile string
 }
+
+func ptr(v string) *string {
+	vv := v
+	return &vv
+}

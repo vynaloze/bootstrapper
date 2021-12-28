@@ -20,6 +20,7 @@ resource "github_actions_organization_permissions" "this" {
 module "github_repos" {
   for_each = merge(
     var.tf_infra_repos,
+    var.tf_module_repos,
     var.misc_repos,
   )
 
@@ -43,11 +44,11 @@ module "github_repos" {
         strict   = each.value.strict
         contexts = each.value.build_checks
       } : tomap(false), {}) # workaround: see https://github.com/hashicorp/terraform/issues/22405#issuecomment-591917758
-      required_pull_request_reviews = {
-        dismiss_stale_reviews           = true
-        require_code_owner_reviews      = true
-        required_approving_review_count = 1
-      }
+      #      required_pull_request_reviews = { # FIXME
+      #        dismiss_stale_reviews           = true
+      #        require_code_owner_reviews      = true
+      #        required_approving_review_count = 1
+      #      }
     }
   ]
   # restrictions = {} TODO

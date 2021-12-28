@@ -85,23 +85,45 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 }
 
 func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
-	tfVars := template.TfInfraSharedCoreTfVars{
-		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true, []string{"terraform / ci"}},
-		},
-		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true, []string{}},
-		},
-		TfcOrgName:   opts.TerraformCloudOrg,
-		RepoOwner:    opts.SharedInfraRepoOpts.Project,
-		RepoUser:     opts.SharedInfraRepoOpts.RemoteAuthUser,
-		RepoPassword: opts.SharedInfraRepoOpts.RemoteAuthPass,
+	terraformTfContent, err := renderTerraformTfContent(opts)
+	if err != nil {
+		return err
 	}
-	tfVarsContent, err := hclencoder_maps.Encode(tfVars)
+	tfVarsContent, err := renderTfVarsContent(opts)
+	if err != nil {
+		return err
+	}
+	reposTfContent, err := renderRaw("repos.tf", opts)
+	if err != nil {
+		return err
+	}
+	variablesTfContent, err := renderRaw("variables.tf", opts)
+	if err != nil {
+		return err
+	}
+	versionsTfContent, err := renderRaw("versions.tf", opts)
 	if err != nil {
 		return err
 	}
 
+	files := []git.File{
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "repos.tf"), string(reposTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "variables.tf"), string(variablesTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "versions.tf"), string(versionsTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
+	}
+	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
+	message := fmt.Sprintf("feat: add %s and %s repos", opts.SharedInfraRepoOpts.Repo, opts.CICDRepoOpts.Repo)
+
+	return gitActor.CommitMany(branch, message, files...)
+}
+
+func renderRaw(file string, opts *BootstrapOpts) ([]byte, error) {
+	return template.Raw(fmt.Sprintf("templates/tf-infra-shared/core/%s/%s", opts.SharedInfraRepoOpts.Provider, file))
+}
+
+func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
 	terraformTf := template.TfInfraSharedCoreTerraformTf{
 		Terraform: template.TfInfraSharedCoreTerraformTfTerraform{
 			Backend: template.TfInfraSharedCoreTerraformTfBackend{
@@ -114,22 +136,24 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 			},
 		},
 	}
-	terraformTfContent, err := hclencoder_blocks.Encode(terraformTf)
-	if err != nil {
-		return err
-	}
+	return hclencoder_blocks.Encode(terraformTf)
+}
 
-	files := []git.File{
-		{filepath.Join(opts.GetTerraformInfraCoreDir(), "repos.tf"), template.TfInfraSharedCoreReposTf},
-		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
-		{filepath.Join(opts.GetTerraformInfraCoreDir(), "variables.tf"), template.TfInfraSharedCoreVariablesTf},
-		{filepath.Join(opts.GetTerraformInfraCoreDir(), "versions.tf"), template.TfInfraSharedCoreVersionsTf},
-		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
+func renderTfVarsContent(opts *BootstrapOpts) ([]byte, error) {
+	tfVars := template.TfInfraSharedCoreTfVars{
+		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
+			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true, []string{"terraform / ci"}},
+		},
+		TfModuleRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{},
+		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
+			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true, []string{}},
+		},
+		TfcOrgName:   opts.TerraformCloudOrg,
+		RepoOwner:    opts.SharedInfraRepoOpts.Project,
+		RepoUser:     opts.SharedInfraRepoOpts.RemoteAuthUser,
+		RepoPassword: opts.SharedInfraRepoOpts.RemoteAuthPass,
 	}
-	branch := opts.SharedInfraRepoOpts.GetDefaultBranch()
-	message := fmt.Sprintf("feat: add %s and %s repos", opts.SharedInfraRepoOpts.Repo, opts.CICDRepoOpts.Repo)
-
-	return gitActor.CommitMany(branch, message, files...)
+	return hclencoder_maps.Encode(tfVars)
 }
 
 func localApply(tfActor terraform.Actor, opts *BootstrapOpts) error {

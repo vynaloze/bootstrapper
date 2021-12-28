@@ -15,6 +15,27 @@ type gitHubActor struct {
 	client *github.Client
 }
 
+func (g *gitHubActor) ReadFile(file string) (string, error) {
+	ctx := context.TODO()
+
+	defaultBranch, err := g.getDefaultBranch(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	fileContent, err := g.getFileContent(ctx, &file, defaultBranch)
+	if err != nil {
+		return "", err
+	}
+
+	dec, err := base64.StdEncoding.DecodeString(*fileContent.Content)
+	if err != nil {
+		return "", err
+	}
+
+	return string(dec), nil
+}
+
 func (g *gitHubActor) Commit(content *string, file *string, branch *string, message *string, overwrite bool) error {
 	ctx := context.TODO()
 

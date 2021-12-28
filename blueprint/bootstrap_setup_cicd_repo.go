@@ -53,11 +53,3 @@ func SetupCICDRepo(opts *SetupCICDRepoOpts) error {
 
 	return nil
 }
-
-// TODO
-// 1. recreate all existing infra
-// 2. make final, correct terraform_infra_ci.yml
-// 3. create terraform_infra_cd.yml
-// 4. run this
-// 5. add both workflows to tf-infra-shared (new blueprint "addCICDToRepo()" or sth) - should be no changes
-// 6. proceed with the plan

@@ -8,6 +8,16 @@ variable "tf_infra_repos" {
   }))
 }
 
+variable "tf_module_repos" {
+  description = "Terraform module repositories (containing reusable modules) to create, keyed by repo name"
+
+  type = map(object({
+    default_branch = string
+    strict         = bool
+    build_checks   = list(string)
+  }))
+}
+
 variable "misc_repos" {
   description = "Miscellaneous repositories to create, keyed by repo name"
 

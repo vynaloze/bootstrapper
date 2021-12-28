@@ -2,6 +2,7 @@ package template
 
 import (
 	_ "embed"
+	"fmt"
 	"github.com/hashicorp/hcl2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -88,14 +89,30 @@ func sortedKeys(m map[string]TerraformProvider) []string {
 }
 
 type TfInfraSharedCoreTfVars struct {
-	TfInfraRepos map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_infra_repos"`
-	MiscRepos    map[string]TfInfraSharedCoreTfVarsRepo `hcl:"misc_repos"`
+	TfInfraRepos  map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_infra_repos"`
+	TfModuleRepos map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_module_repos"`
+	MiscRepos     map[string]TfInfraSharedCoreTfVarsRepo `hcl:"misc_repos"`
 
 	TfcOrgName   string `hcl:"tfc_org_name"`
 	RepoOwner    string `hcl:"repo_owner"`
 	RepoUser     string `hcl:"repo_user"`
 	RepoPassword string `hcle:"omit"`
 }
+
+func (t *TfInfraSharedCoreTfVars) AddRepo(typ GitRepoType, name string, defaultBranch string) error {
+	switch typ {
+	case TerraformInfra:
+		t.TfInfraRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{"terraform / ci"}}
+	case TerraformModule:
+		t.TfModuleRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{"terraform / ci"}}
+	case Miscellaneous:
+		t.MiscRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{}}
+	default:
+		return fmt.Errorf("unknown type: " + string(typ))
+	}
+	return nil
+}
+
 type TfInfraSharedCoreTfVarsRepo struct {
 	DefaultBranch string   `hcl:"default_branch"`
 	Strict        bool     `hcl:"strict"`
