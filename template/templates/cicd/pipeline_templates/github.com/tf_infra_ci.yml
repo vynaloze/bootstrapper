@@ -1,0 +1,19 @@
+name: '[[ .Module ]]_ci'
+
+on:
+  push:
+    branches-ignore:
+      - [[ .DefaultBranch ]]
+    paths:
+      - '[[ .Module ]]/**'
+      - '.github/workflows/**'
+
+jobs:
+  terraform:
+    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/tf_infra_ci.yml@[[ .DefaultBranch ]]
+    with:
+      workdir: [[ .Module ]]
+    secrets:
+      tf_api_token: ${{ secrets.TF_API_TOKEN }}
+      tf_vars: |
+        repo_password = "${{ secrets.TF_VAR_REPO_PASSWORD }}"

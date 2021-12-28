@@ -13,7 +13,11 @@ func Parse(tpl string, data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot read template %s: %w", tpl, err)
 	}
-	t, err := template.New("").Delims("[[", "]]").Parse(string(content))
+	t, err := template.
+		New("").
+		Delims("[[", "]]").
+		Funcs(template.FuncMap{"StringsJoin": strings.Join}).
+		Parse(string(content))
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse template %s: %w", tpl, err)
 	}

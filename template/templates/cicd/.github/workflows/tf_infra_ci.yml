@@ -28,14 +28,8 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.tf_api_token }}
 
-      - name: init
-        run: terraform init
-
       - name: fmt check
         run: terraform fmt -recursive -check
-
-      - name: validate
-        run: terraform validate
 
       - name: linter
         run: |
@@ -47,6 +41,12 @@ jobs:
         with:
           directory: .
           framework: terraform
+
+      - name: init
+        run: terraform init
+
+      - name: validate
+        run: terraform validate
 
       - name: plan
         run: |

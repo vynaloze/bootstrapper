@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+    inputs:
+      workdirs:
+        required: true
+        type: string
+
+jobs:
+  ci:
+    name: 'ci'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: fmt check
+        run: terraform fmt -recursive -check
+
+      - name: linter
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/v0.28.1/install_linux.sh | bash
+          CONFIG=$(if [ "$dir" = "." ];then echo -n '../.tflint.hcl';else echo -n '.tflint.hcl';fi)
+          for dir in ${{ inputs.workdirs }}; do cd $dir; TFLINT_LOG=info tflint -c ${CONFIG} .; cd ..; done
+
+      - name: security check
+        run: |
+          python3 -m pip install -U checkov
+          for dir in ${{ inputs.workdirs }}; do cd $dir; checkov -d .; cd ..; done
+
+      - name: validate
+        run: |
+          for dir in ${{ inputs.workdirs }}; do cd $dir; terraform init; cd ..; done
+          for dir in ${{ inputs.workdirs }}; do cd $dir; terraform validate; cd ..; done

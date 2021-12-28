@@ -1,0 +1,10 @@
+name: 'cd'
+
+on:
+  push:
+    branches:
+      - [[ .DefaultBranch ]]
+
+jobs:
+  terraform:
+    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/tf_module_cd.yml@[[ .DefaultBranch ]]

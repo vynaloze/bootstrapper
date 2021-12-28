@@ -1,0 +1,19 @@
+name: 'ci'
+
+on:
+  push:
+    branches-ignore:
+      - [[ .DefaultBranch ]]
+  [[- if .Modules ]]
+    paths:
+    [[- range $module := .Modules ]]
+      - '[[ $module ]]/**'
+    [[- end ]]
+      - '.github/workflows/**'
+  [[- end ]]
+
+jobs:
+  terraform:
+    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/tf_module_ci.yml@[[ .DefaultBranch ]]
+    with:
+      workdirs: [[ with .Modules ]]'[[ StringsJoin . " " ]]'[[ else ]]'.'[[ end ]]

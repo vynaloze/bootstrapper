@@ -1,8 +1,8 @@
-name: '[[ .Module ]]_[[ .Workflow ]]'
+name: '[[ .Module ]]_cd'
 
 on:
   push:
-    branches [[- if not .OnDefaultBranch ]]-ignore[[ end ]]:
+    branches:
       - [[ .DefaultBranch ]]
     paths:
       - '[[ .Module ]]/**'
@@ -10,7 +10,7 @@ on:
 
 jobs:
   terraform:
-    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/terraform_infra_[[ .Workflow ]].yml@[[ .DefaultBranch ]]
+    uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/tf_infra_cd.yml@[[ .DefaultBranch ]]
     with:
       workdir: [[ .Module ]]
     secrets:

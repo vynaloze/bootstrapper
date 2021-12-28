@@ -42,7 +42,7 @@ func AddCICDToRepo(opts *AddCICDToRepoOpts) error {
 	log.Printf("pushing changes to remote repository")
 
 	branch := fmt.Sprintf("%s/%d", opts.TargetRepoOpts.GetAuthorName(), time.Now().UnixMilli())
-	message := "feat: add CI/CD pipelines templates"
+	message := "chore: add CI/CD pipelines templates"
 
 	err = localActor.CommitMany(branch, message, gitFiles...)
 	if err != nil {
