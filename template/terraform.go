@@ -93,10 +93,7 @@ type TfInfraSharedCoreTfVars struct {
 	TfModuleRepos map[string]TfInfraSharedCoreTfVarsRepo `hcl:"tf_module_repos"`
 	MiscRepos     map[string]TfInfraSharedCoreTfVarsRepo `hcl:"misc_repos"`
 
-	TfcOrgName   string `hcl:"tfc_org_name"`
-	RepoOwner    string `hcl:"repo_owner"`
-	RepoUser     string `hcl:"repo_user"`
-	RepoPassword string `hcle:"omit"`
+	TfcOrganization string `hcl:"tfc_organization"`
 }
 
 func (t *TfInfraSharedCoreTfVars) AddRepo(typ GitRepoType, name string, defaultBranch string) error {

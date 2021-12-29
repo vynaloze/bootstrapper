@@ -1,8 +1,3 @@
-provider "github" {
-  owner = var.repo_owner
-  token = var.repo_password
-}
-
 resource "github_actions_organization_permissions" "this" {
   allowed_actions      = "selected"
   enabled_repositories = "selected"

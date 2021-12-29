@@ -5,7 +5,6 @@ import (
 	"bootstrapper/actor/terraform"
 	"bootstrapper/blueprint"
 	"bootstrapper/datasource"
-	"bootstrapper/template"
 	"fmt"
 	"log"
 )
@@ -24,34 +23,38 @@ func main() {
 		panic(err)
 	}
 
-	commonGitOpts := git.Opts{
-		Provider: "github.com",
-		Project:  "bootstrapper-demo-org",
+	gitProvider := "github.com"
+	gitProject := "bootstrapper-demo-org"
+	gitUser := "bootstrapper-demo"
+	gitPass := ghToken
 
-		RemoteAuthUser: "bootstrapper-demo",
-		RemoteAuthPass: ghToken,
+	sharedInfraGitOpts := git.Opts{
+		Provider: gitProvider, Project: gitProject, Repo: "tf-infra-shared",
+		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
 	}
-	sharedInfraGitOpts, cicdRepoOpts := commonGitOpts, commonGitOpts
-	sharedInfraGitOpts.Repo = "tf-infra-shared"
-	cicdRepoOpts.Repo = "cicd"
-
+	cicdRepoOpts := git.Opts{
+		Provider: gitProvider, Project: gitProject, Repo: "cicd",
+		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
+	}
 	terraformOpts := blueprint.TerraformOpts{
 		Opts: terraform.Opts{
-			TerraformCloudOrg:   "bootstrapper-demo",
-			TerraformCloudToken: tfcToken,
-			TfVars: map[string]string{
-				"repo_password": ghToken,
+			TerraformCloudOrg:       "bootstrapper-demo",
+			TerraformCloudToken:     tfcToken,
+			TerraformCloudWorkspace: "tf-infra-shared",
+			ProviderSecrets: map[string]map[string]string{
+				"github": {"owner": gitProject, "token": gitPass},
+				"tfe":    {"token": tfcToken},
 			},
 		},
 	}
 
-	opts := blueprint.BootstrapOpts{
+	bootstrapOpts := blueprint.BootstrapOpts{
 		SharedInfraRepoOpts: sharedInfraGitOpts,
 		CICDRepoOpts:        cicdRepoOpts,
 		TerraformOpts:       terraformOpts,
 	}
 
-	err = blueprint.Bootstrap(&opts)
+	err = blueprint.Bootstrap(&bootstrapOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -59,11 +62,11 @@ func main() {
 	fmt.Println("Press Enter to proceed")
 	fmt.Scanln()
 
-	opts2 := blueprint.SetupCICDRepoOpts{
+	setupCICDOpts := blueprint.SetupCICDRepoOpts{
 		CICDRepoOpts: cicdRepoOpts,
 	}
 
-	err = blueprint.SetupCICDRepo(&opts2)
+	err = blueprint.SetupCICDRepo(&setupCICDOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -71,38 +74,9 @@ func main() {
 	fmt.Println("Press Enter to proceed")
 	fmt.Scanln()
 
-	opts3 := blueprint.AddCICDToRepoOpts{
-		TargetRepoOpts: sharedInfraGitOpts,
-		Templates: []blueprint.Template{
-			{
-				SourceFile: fmt.Sprintf("%s/%s_ci.yml", sharedInfraGitOpts.Provider, template.TerraformInfra),
-				Data: template.TerraformInfraTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					Module:        terraformOpts.GetTerraformInfraCoreDir(),
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: fmt.Sprintf(".github/workflows/%s.ci.yml", terraformOpts.GetTerraformInfraCoreDir()),
-			},
-			{
-				SourceFile: fmt.Sprintf("%s/%s_cd.yml", sharedInfraGitOpts.Provider, template.TerraformInfra),
-				Data: template.TerraformInfraTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					Module:        terraformOpts.GetTerraformInfraCoreDir(),
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: fmt.Sprintf(".github/workflows/%s.cd.yml", terraformOpts.GetTerraformInfraCoreDir()),
-			},
-			{
-				SourceFile: ".tflint.hcl",
-				Data:       nil,
-				TargetFile: ".tflint.hcl",
-			},
-		},
-	}
+	addCICDOpts := blueprint.TfInfraSharedCICDPreset(sharedInfraGitOpts, cicdRepoOpts, terraformOpts)
 
-	err = blueprint.AddCICDToRepo(&opts3)
+	err = blueprint.AddCICDToRepo(&addCICDOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -1,15 +1,11 @@
 package terraform
 
 import (
-	"github.com/hashicorp/hcl2/hclwrite"
 	hclencoder_blocks "github.com/rodaine/hclencoder"
-	"github.com/zclconf/go-cty/cty"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
-
-const secretsFile = "secrets_override.auto.tfvars"
 
 type terraformTfrc struct {
 	Credentials terraformTfrcCredentials `hcl:"credentials,block"`
@@ -39,13 +35,40 @@ func (a *Actor) writeCliConfigFile(dir string) error {
 	return ioutil.WriteFile(cliConfigFile, terraformTfrcContent, 0644)
 }
 
-func (a *Actor) writeTfVarsFile(dir string) error {
-	f := hclwrite.NewEmptyFile()
-	rootBody := f.Body()
-	for k, v := range a.opts.TfVars {
-		rootBody.SetAttributeValue(k, cty.StringVal(v))
-	}
+type providersTf struct {
+	Github *providersTfGithub `hcl:"provider,block"`
+	Tfe    providersTfTfe     `hcl:"provider,block"`
+}
 
-	cliConfigFile := filepath.Join(dir, secretsFile)
-	return ioutil.WriteFile(cliConfigFile, f.Bytes(), 0644)
+type providersTfGithub struct {
+	Provider string `hcl:",key"`
+	Owner    string `hcl:"owner"`
+	Token    string `hcl:"token"`
+}
+
+type providersTfTfe struct {
+	Provider string `hcl:",key"`
+	Token    string `hcl:"token"`
+}
+
+func (a *Actor) writeProvidersTf(dir string) error {
+	providersTf := providersTf{
+		Tfe: providersTfTfe{
+			Provider: "tfe",
+			Token:    a.opts.ProviderSecrets["tfe"]["token"],
+		},
+	}
+	if _, ok := a.opts.ProviderSecrets["github"]; ok {
+		providersTf.Github = &providersTfGithub{
+			Provider: "github",
+			Owner:    a.opts.ProviderSecrets["github"]["owner"],
+			Token:    a.opts.ProviderSecrets["github"]["token"],
+		}
+	}
+	providersTfContent, err := hclencoder_blocks.Encode(providersTf)
+	if err != nil {
+		return err
+	}
+	providersTfFile := filepath.Join(dir, "providers_override.tf")
+	return ioutil.WriteFile(providersTfFile, providersTfContent, 0644)
 }

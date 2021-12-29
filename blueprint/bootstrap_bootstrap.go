@@ -97,6 +97,10 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	if err != nil {
 		return err
 	}
+	tfCloudTfContent, err := renderRaw("tf_cloud.tf", opts)
+	if err != nil {
+		return err
+	}
 	variablesTfContent, err := renderRaw("variables.tf", opts)
 	if err != nil {
 		return err
@@ -109,6 +113,7 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 	files := []git.File{
 		{filepath.Join(opts.GetTerraformInfraCoreDir(), "repos.tf"), string(reposTfContent)},
 		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.tf"), string(terraformTfContent)},
+		{filepath.Join(opts.GetTerraformInfraCoreDir(), "tf_cloud.tf"), string(tfCloudTfContent)},
 		{filepath.Join(opts.GetTerraformInfraCoreDir(), "variables.tf"), string(variablesTfContent)},
 		{filepath.Join(opts.GetTerraformInfraCoreDir(), "versions.tf"), string(versionsTfContent)},
 		{filepath.Join(opts.GetTerraformInfraCoreDir(), "terraform.auto.tfvars"), string(tfVarsContent)},
@@ -120,7 +125,7 @@ func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
 }
 
 func renderRaw(file string, opts *BootstrapOpts) ([]byte, error) {
-	return template.Raw(fmt.Sprintf("templates/tf-infra-shared/core/%s/%s", opts.SharedInfraRepoOpts.Provider, file))
+	return template.Raw(fmt.Sprintf("templates/tf-infra-shared/%s/core/%s", opts.SharedInfraRepoOpts.Provider, file))
 }
 
 func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
@@ -148,10 +153,7 @@ func renderTfVarsContent(opts *BootstrapOpts) ([]byte, error) {
 		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
 			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true, []string{}},
 		},
-		TfcOrgName:   opts.TerraformCloudOrg,
-		RepoOwner:    opts.SharedInfraRepoOpts.Project,
-		RepoUser:     opts.SharedInfraRepoOpts.RemoteAuthUser,
-		RepoPassword: opts.SharedInfraRepoOpts.RemoteAuthPass,
+		TfcOrganization: opts.TerraformCloudOrg,
 	}
 	return hclencoder_maps.Encode(tfVars)
 }

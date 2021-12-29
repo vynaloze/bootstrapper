@@ -4,13 +4,6 @@ on:
   push:
     branches-ignore:
       - [[ .DefaultBranch ]]
-  [[- if .Modules ]]
-    paths:
-    [[- range $module := .Modules ]]
-      - '[[ $module ]]/**'
-    [[- end ]]
-      - '.github/workflows/**'
-  [[- end ]]
 
 jobs:
   terraform:

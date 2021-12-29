@@ -7,8 +7,14 @@ on:
     secrets:
       tf_api_token:
         required: true
-      tf_vars:
+      gh_owner:
         required: true
+      gh_token:
+        required: true
+
+env:
+  GITHUB_OWNER: ${{ secrets.gh_owner }}
+  GITHUB_TOKEN: ${{ secrets.gh_token }}
 
 jobs:
   ci:
@@ -49,6 +55,4 @@ jobs:
         run: terraform validate
 
       - name: plan
-        run: |
-          echo -e '${{ secrets.tf_vars }}' > secrets_override.auto.tfvars
-          terraform plan
+        run: terraform plan

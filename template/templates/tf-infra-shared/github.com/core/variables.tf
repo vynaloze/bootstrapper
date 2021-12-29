@@ -28,24 +28,8 @@ variable "misc_repos" {
   }))
 }
 
-variable "repo_owner" {
-  description = "Owner of the repositories"
+variable "tfc_organization" {
+  description = "Terraform Cloud organization name"
 
   type = string
 }
-
-# tflint-ignore: terraform_unused_declarations
-variable "repo_user" {
-  description = "Repository access username (or empty)"
-  default     = ""
-
-  type = string
-}
-
-variable "repo_password" {
-  description = "Repository access token or password"
-
-  type      = string
-  sensitive = true
-}
-
