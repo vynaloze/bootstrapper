@@ -11,9 +11,6 @@ import (
 type AddCICDToRepoOpts struct {
 	TargetRepoOpts git.Opts
 	Templates      []Template
-
-	// optional: if set, only push to given branch and don't create PR
-	TargetRepoBranch *string
 }
 
 func AddCICDToRepo(opts *AddCICDToRepoOpts) error {
@@ -45,21 +42,14 @@ func AddCICDToRepo(opts *AddCICDToRepoOpts) error {
 	log.Printf("pushing changes to remote repository")
 
 	message := "chore: add CI/CD pipelines templates"
-	if opts.TargetRepoBranch != nil {
-		err = commitAndPush(localActor, *opts.TargetRepoBranch, message, gitFiles)
-		if err != nil {
-			return err
-		}
-	} else {
-		branch := fmt.Sprintf("%s/%d", opts.TargetRepoOpts.GetAuthorName(), time.Now().UnixMilli())
-		err = commitAndPush(localActor, branch, message, gitFiles)
-		if err != nil {
-			return err
-		}
-		err = remoteActor.RequestReview(&branch, &message)
-		if err != nil {
-			return fmt.Errorf("error creating PR: %w", err)
-		}
+	branch := fmt.Sprintf("%s/%d", opts.TargetRepoOpts.GetAuthorName(), time.Now().UnixMilli())
+	err = commitAndPush(localActor, branch, message, gitFiles)
+	if err != nil {
+		return err
+	}
+	err = remoteActor.RequestReview(&branch, &message)
+	if err != nil {
+		return fmt.Errorf("error creating PR: %w", err)
 	}
 
 	return nil
@@ -89,7 +79,7 @@ func TfInfraSharedCICDPreset(sharedInfraGitOpts git.Opts, cicdRepoOpts git.Opts,
 					Modules:       []template.TerraformInfraModuleTemplate{{Name: terraformOpts.GetTerraformInfraCoreDir()}},
 					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 				},
-				TargetFile: fmt.Sprintf(".github/workflows/%s.ci.yml", terraformOpts.GetTerraformInfraCoreDir()),
+				TargetFile: ".github/workflows/ci.yml",
 			},
 			{
 				SourceFile: fmt.Sprintf("%s/%s_cd.yml", sharedInfraGitOpts.Provider, template.TerraformInfra),
@@ -99,7 +89,7 @@ func TfInfraSharedCICDPreset(sharedInfraGitOpts git.Opts, cicdRepoOpts git.Opts,
 					Modules:       []template.TerraformInfraModuleTemplate{{Name: terraformOpts.GetTerraformInfraCoreDir()}},
 					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 				},
-				TargetFile: fmt.Sprintf(".github/workflows/%s.cd.yml", terraformOpts.GetTerraformInfraCoreDir()),
+				TargetFile: ".github/workflows/cd.yml",
 			},
 			{
 				SourceFile: ".tflint.hcl",
@@ -110,40 +100,36 @@ func TfInfraSharedCICDPreset(sharedInfraGitOpts git.Opts, cicdRepoOpts git.Opts,
 	}
 }
 
-func TfEnvCICDPreset(tfEnvRepoOpts git.Opts, tfEnvBranch string, cicdRepoOpts git.Opts) AddCICDToRepoOpts {
-	return AddCICDToRepoOpts{
-		TargetRepoOpts:   tfEnvRepoOpts,
-		TargetRepoBranch: &tfEnvBranch,
-		Templates: []Template{
-			{
-				SourceFile: fmt.Sprintf("%s/%s_ci.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
-				Data: template.TerraformModuleTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					Modules:       []string{"base", "k8s"},
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: ".github/workflows/ci.yml",
+func TfEnvCICDPreset(tfEnvRepoOpts git.Opts, cicdRepoOpts git.Opts) []Template {
+	return []Template{
+		{
+			SourceFile: fmt.Sprintf("%s/%s_ci.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
+			Data: template.TerraformModuleTemplate{
+				Project:       cicdRepoOpts.Project,
+				Repo:          cicdRepoOpts.Repo,
+				Modules:       []string{"base", "k8s"},
+				DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 			},
-			{
-				SourceFile: fmt.Sprintf("%s/%s_cd.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
-				Data: template.TerraformModuleTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: ".github/workflows/cd.yml",
+			TargetFile: ".github/workflows/ci.yml",
+		},
+		{
+			SourceFile: fmt.Sprintf("%s/%s_cd.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
+			Data: template.TerraformModuleTemplate{
+				Project:       cicdRepoOpts.Project,
+				Repo:          cicdRepoOpts.Repo,
+				DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 			},
-			{
-				SourceFile: ".tflint.hcl",
-				Data:       nil,
-				TargetFile: ".tflint.hcl",
-			},
-			{
-				SourceFile: ".releaserc.yaml",
-				Data:       nil,
-				TargetFile: ".releaserc.yaml",
-			},
+			TargetFile: ".github/workflows/cd.yml",
+		},
+		{
+			SourceFile: ".tflint.hcl",
+			Data:       nil,
+			TargetFile: ".tflint.hcl",
+		},
+		{
+			SourceFile: ".releaserc.yaml",
+			Data:       nil,
+			TargetFile: ".releaserc.yaml",
 		},
 	}
 }

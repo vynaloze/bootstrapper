@@ -156,23 +156,27 @@ func (l *localActor) Push() error {
 			URLs: []string{l.GetRemoteURL()},
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("error creating remote: %w", err)
 		}
 	}
 
 	err = l.r.Fetch(&git.FetchOptions{RemoteName: "origin"})
 	if err != nil {
 		if !errors.Is(err, git.NoErrAlreadyUpToDate) {
-			return err
+			return fmt.Errorf("error fetching changes: %w", err)
 		}
 	} else {
 		err := l.rebase()
 		if err != nil {
-			return err
+			return fmt.Errorf("error pulling with rebase: %w", err)
 		}
 	}
 
-	return l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
+	err = l.r.Push(&git.PushOptions{Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass}})
+	if err != nil {
+		return fmt.Errorf("error pushing changes: %w", err)
+	}
+	return nil
 }
 
 func (l *localActor) rebase() error {

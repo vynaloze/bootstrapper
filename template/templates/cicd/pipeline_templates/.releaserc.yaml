@@ -1,2 +1,6 @@
 plugins:
   - '@semantic-release/commit-analyzer'
+branches:
+  - master
+  - main
+  - trunk

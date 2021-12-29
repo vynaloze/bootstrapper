@@ -28,7 +28,7 @@ jobs:
 
       - name: security check
         run: |
-          python3 -m pip install -U checkov
+          python3 -m pip install -U checkov==2.0.136
           for dir in ${{ inputs.workdirs }}; do cd $dir; checkov -d .; cd ..; done
 
       - name: validate
