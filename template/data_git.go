@@ -7,3 +7,7 @@ const (
 	TerraformModule GitRepoType = "tf_module"
 	Miscellaneous   GitRepoType = "misc"
 )
+
+type GitRepoExtraContent struct {
+	Modules []string
+}

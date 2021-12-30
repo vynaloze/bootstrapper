@@ -1,6 +1,7 @@
 package template
 
 import (
+	"bootstrapper/actor/git"
 	_ "embed"
 	"fmt"
 )
@@ -28,14 +29,16 @@ type TfInfraSharedCoreTfVars struct {
 	TfcOrganization string `hcl:"tfc_organization"`
 }
 
-func (t *TfInfraSharedCoreTfVars) AddRepo(typ GitRepoType, name string, defaultBranch string) error {
+func (t *TfInfraSharedCoreTfVars) AddRepo(typ GitRepoType, extraContent GitRepoExtraContent, gitOpts git.Opts) error {
+	name := gitOpts.Repo
+	defaultBranch := gitOpts.GetDefaultBranch()
 	switch typ {
 	case TerraformInfra:
-		t.TfInfraRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{"terraform / ci"}}
+		t.TfInfraRepos[name] = TfInfraSharedCoreTfVarsRepo{extraContent.Modules, defaultBranch, true, []string{"terraform / ci"}}
 	case TerraformModule:
-		t.TfModuleRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{"terraform / ci"}}
+		t.TfModuleRepos[name] = TfInfraSharedCoreTfVarsRepo{[]string{}, defaultBranch, true, []string{"terraform / ci"}}
 	case Miscellaneous:
-		t.MiscRepos[name] = TfInfraSharedCoreTfVarsRepo{defaultBranch, true, []string{}}
+		t.MiscRepos[name] = TfInfraSharedCoreTfVarsRepo{[]string{}, defaultBranch, true, []string{}}
 	default:
 		return fmt.Errorf("unknown type: " + string(typ))
 	}
@@ -43,6 +46,8 @@ func (t *TfInfraSharedCoreTfVars) AddRepo(typ GitRepoType, name string, defaultB
 }
 
 type TfInfraSharedCoreTfVarsRepo struct {
+	Modules []string `hcl:"modules,omitempty"`
+
 	DefaultBranch string   `hcl:"default_branch"`
 	Strict        bool     `hcl:"strict"`
 	BuildChecks   []string `hcl:"build_checks"`

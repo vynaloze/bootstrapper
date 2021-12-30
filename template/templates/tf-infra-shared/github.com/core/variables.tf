@@ -2,6 +2,8 @@ variable "tf_infra_repos" {
   description = "Terraform infrastructure repositories (containing root modules) to create, keyed by repo name"
 
   type = map(object({
+    modules = list(string)
+
     default_branch = string
     strict         = bool
     build_checks   = list(string)

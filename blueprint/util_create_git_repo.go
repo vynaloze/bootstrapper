@@ -14,6 +14,9 @@ type CreateGitRepoOpts struct {
 	SharedInfraRepoOpts git.Opts
 	NewRepoOpts         git.Opts
 	NewRepoType         template.GitRepoType
+
+	// optional
+	NewRepoExtraContent template.GitRepoExtraContent
 }
 
 func CreateGitRepo(opts CreateGitRepoOpts) error {
@@ -37,7 +40,7 @@ func CreateGitRepo(opts CreateGitRepoOpts) error {
 	log.Printf("found: %+v", reposTfVars)
 
 	log.Printf("adding new repo")
-	err = reposTfVars.AddRepo(opts.NewRepoType, opts.NewRepoOpts.Repo, opts.NewRepoOpts.GetDefaultBranch())
+	err = reposTfVars.AddRepo(opts.NewRepoType, opts.NewRepoExtraContent, opts.NewRepoOpts)
 	if err != nil {
 		return fmt.Errorf("error adding new repo: %w", err)
 	}

@@ -136,7 +136,7 @@ func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
 				Hostname:     "app.terraform.io",
 				Organization: opts.TerraformCloudOrg,
 				Workspaces: template.TfInfraSharedCoreTerraformTfWorkspaces{
-					Name: opts.SharedInfraRepoOpts.Repo,
+					Name: fmt.Sprintf("%s-%s", opts.SharedInfraRepoOpts.Repo, opts.GetTerraformInfraCoreDir()),
 				},
 			},
 		},
@@ -147,11 +147,21 @@ func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
 func renderTfVarsContent(opts *BootstrapOpts) ([]byte, error) {
 	tfVars := template.TfInfraSharedCoreTfVars{
 		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.SharedInfraRepoOpts.Repo: {opts.SharedInfraRepoOpts.GetDefaultBranch(), true, []string{"terraform / ci"}},
+			opts.SharedInfraRepoOpts.Repo: {
+				Modules:       []string{opts.GetTerraformInfraCoreDir()},
+				DefaultBranch: opts.SharedInfraRepoOpts.GetDefaultBranch(),
+				Strict:        true,
+				BuildChecks:   []string{"terraform / ci"},
+			},
 		},
 		TfModuleRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{},
 		MiscRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
-			opts.CICDRepoOpts.Repo: {opts.CICDRepoOpts.GetDefaultBranch(), true, []string{}},
+			opts.CICDRepoOpts.Repo: {
+				Modules:       []string{},
+				DefaultBranch: opts.CICDRepoOpts.GetDefaultBranch(),
+				Strict:        true,
+				BuildChecks:   []string{},
+			},
 		},
 		TfcOrganization: opts.TerraformCloudOrg,
 	}

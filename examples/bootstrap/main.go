@@ -40,7 +40,7 @@ func main() {
 		Opts: terraform.Opts{
 			TerraformCloudOrg:       "bootstrapper-demo",
 			TerraformCloudToken:     tfcToken,
-			TerraformCloudWorkspace: "tf-infra-shared",
+			TerraformCloudWorkspace: "tf-infra-shared-core",
 			ProviderSecrets: map[string]map[string]string{
 				"github": {"owner": gitProject, "token": gitPass},
 				"tfe":    {"token": tfcToken},
