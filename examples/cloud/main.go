@@ -5,6 +5,7 @@ import (
 	"bootstrapper/blueprint"
 	"bootstrapper/datasource"
 	"bootstrapper/template"
+	"fmt"
 	"log"
 )
 
@@ -25,10 +26,12 @@ func main() {
 
 	cloudProvider := template.AWS
 
-	//sharedInfraGitOpts := git.Opts{
-	//	Provider: gitProvider, Project: gitProject, Repo: "tf-infra-shared",
-	//	RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
-	//}
+	env := "stg"
+
+	sharedInfraGitOpts := git.Opts{
+		Provider: gitProvider, Project: gitProject, Repo: "tf-infra-shared",
+		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
+	}
 	cicdRepoOpts := git.Opts{
 		Provider: gitProvider, Project: gitProject, Repo: "cicd",
 		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
@@ -37,38 +40,65 @@ func main() {
 		Provider: gitProvider, Project: gitProject, Repo: "tf-env",
 		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
 	}
+	tfInfraRepoOpts := git.Opts{
+		Provider: gitProvider, Project: gitProject, Repo: "tf-infra-" + env,
+		RemoteAuthUser: gitUser, RemoteAuthPass: gitPass,
+	}
 
 	log.Printf("start cloud phase")
+
 	log.Printf("setup environment module")
-	//createGitRepoOpts := blueprint.CreateGitRepoOpts{
-	//	SharedInfraRepoOpts: sharedInfraGitOpts,
-	//	NewRepoOpts:         tfEnvRepoOpts,
-	//	NewRepoType:         template.TerraformModule,
-	//}
-	//err = blueprint.CreateGitRepo(createGitRepoOpts)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
+	createTfEnvRepo(sharedInfraGitOpts, tfEnvRepoOpts)
+	setupTfEnvRepo(tfEnvRepoOpts, cloudProvider, cicdRepoOpts)
 
-	//fmt.Println("Press Enter to proceed")
-	//fmt.Scanln()
+	log.Printf("setup infra module(s)")
+	createTfInfraRepo(sharedInfraGitOpts, tfInfraRepoOpts)
 
+}
+
+func createTfEnvRepo(sharedInfraGitOpts git.Opts, tfEnvRepoOpts git.Opts) {
+	createGitRepoOpts := blueprint.CreateGitRepoOpts{
+		SharedInfraRepoOpts: sharedInfraGitOpts,
+		NewRepoOpts:         tfEnvRepoOpts,
+		NewRepoType:         template.TerraformModule,
+	}
+	err := blueprint.CreateGitRepo(createGitRepoOpts)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println("Press Enter to proceed")
+	fmt.Scanln()
+}
+
+func setupTfEnvRepo(tfEnvRepoOpts git.Opts, cloudProvider template.CloudProvider, cicdRepoOpts git.Opts) {
 	setupCloudEnvOpts := blueprint.SetupCloudEnvModuleOpts{
 		EnvRepoOpts:   tfEnvRepoOpts,
 		CloudProvider: cloudProvider,
 		CICDTemplates: blueprint.TfEnvCICDPreset(tfEnvRepoOpts, cicdRepoOpts),
 	}
 
-	err = blueprint.SetupCloudEnvModule(&setupCloudEnvOpts)
+	err := blueprint.SetupCloudEnvModule(&setupCloudEnvOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	//fmt.Println("Press Enter to proceed")
-	//fmt.Scanln()
+	fmt.Println("Press Enter to proceed")
+	fmt.Scanln()
+}
 
-	log.Printf("setup infra module(s)")
+func createTfInfraRepo(sharedInfraGitOpts git.Opts, tfInfraRepoOpts git.Opts) {
+	createGitRepoOpts := blueprint.CreateGitRepoOpts{
+		SharedInfraRepoOpts: sharedInfraGitOpts,
+		NewRepoOpts:         tfInfraRepoOpts,
+		NewRepoType:         template.TerraformInfra,
+		NewRepoExtraContent: template.GitRepoExtraContent{Modules: []string{"base", "k8s"}},
+	}
+	err := blueprint.CreateGitRepo(createGitRepoOpts)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	// TODO cloud infra env here
-
+	fmt.Println("Press Enter to proceed")
+	fmt.Scanln()
 }
