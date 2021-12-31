@@ -8,6 +8,7 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"time"
 )
 
 type gitHubActor struct {
@@ -150,6 +151,34 @@ func (g *gitHubActor) RequestReview(branch *string, summary *string) error {
 	}
 	log.Printf("PR created: %s\n", pr.GetHTMLURL())
 	return nil
+}
+
+func (g *gitHubActor) LatestTag() (string, error) {
+	tags, _, err := g.client.Repositories.ListTags(context.TODO(), g.Owner(), g.Repo(), nil)
+	if err != nil {
+		return "", err
+	}
+	latestTag := ""
+	var latestDate time.Time
+	for _, tag := range tags {
+		date, err := g.getCommitDate(tag.GetCommit().GetSHA())
+		if err != nil {
+			return "", err
+		}
+		if date.After(latestDate) {
+			latestDate = date
+			latestTag = tag.GetName()
+		}
+	}
+	return latestTag, nil
+}
+
+func (g *gitHubActor) getCommitDate(sha string) (time.Time, error) {
+	commit, _, err := g.client.Repositories.GetCommit(context.TODO(), g.Owner(), g.Repo(), sha, nil)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("cannot get commit %s date: %w", sha, err)
+	}
+	return commit.GetCommit().GetCommitter().GetDate(), nil
 }
 
 func newGitHubActor(o *Opts) (RemoteActor, error) {

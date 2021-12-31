@@ -4,6 +4,9 @@ on:
       workdirs:
         required: true
         type: string
+    secrets:
+      gh_ssh_private_key:
+        required: true
 
 jobs:
   ci:
@@ -13,6 +16,13 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v2
+
+      - name: setup ssh key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.gh_ssh_private_key }}"
 
       - name: setup terraform
         uses: hashicorp/setup-terraform@v1
@@ -32,6 +42,8 @@ jobs:
           for dir in ${{ inputs.workdirs }}; do cd $dir; checkov -d .; cd ..; done
 
       - name: validate
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           for dir in ${{ inputs.workdirs }}; do cd $dir; terraform init; cd ..; done
           for dir in ${{ inputs.workdirs }}; do cd $dir; terraform validate; cd ..; done

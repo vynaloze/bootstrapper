@@ -85,11 +85,11 @@ func initLocalRepo(gitActor git.LocalActor, opts *BootstrapOpts) error {
 }
 
 func renderTerraformCode(gitActor git.LocalActor, opts *BootstrapOpts) error {
-	terraformTfContent, err := renderTerraformTfContent(opts)
+	terraformTfContent, err := renderSharedTerraformTfContent(opts)
 	if err != nil {
 		return err
 	}
-	tfVarsContent, err := renderTfVarsContent(opts)
+	tfVarsContent, err := renderSharedTfVarsContent(opts)
 	if err != nil {
 		return err
 	}
@@ -128,14 +128,14 @@ func renderRaw(file string, opts *BootstrapOpts) ([]byte, error) {
 	return template.Raw(fmt.Sprintf("templates/tf-infra-shared/%s/core/%s", opts.SharedInfraRepoOpts.Provider, file))
 }
 
-func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
-	terraformTf := template.TfInfraSharedCoreTerraformTf{
-		Terraform: template.TfInfraSharedCoreTerraformTfTerraform{
-			Backend: template.TfInfraSharedCoreTerraformTfBackend{
+func renderSharedTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
+	terraformTf := template.TfInfraTerraformTf{
+		Terraform: template.TfInfraTerraformTfTerraform{
+			Backend: template.TfInfraTerraformTfBackend{
 				Name:         "remote",
 				Hostname:     "app.terraform.io",
 				Organization: opts.TerraformCloudOrg,
-				Workspaces: template.TfInfraSharedCoreTerraformTfWorkspaces{
+				Workspaces: template.TfInfraTerraformTfWorkspaces{
 					Name: fmt.Sprintf("%s-%s", opts.SharedInfraRepoOpts.Repo, opts.GetTerraformInfraCoreDir()),
 				},
 			},
@@ -144,7 +144,7 @@ func renderTerraformTfContent(opts *BootstrapOpts) ([]byte, error) {
 	return hclencoder_blocks.Encode(terraformTf)
 }
 
-func renderTfVarsContent(opts *BootstrapOpts) ([]byte, error) {
+func renderSharedTfVarsContent(opts *BootstrapOpts) ([]byte, error) {
 	tfVars := template.TfInfraSharedCoreTfVars{
 		TfInfraRepos: map[string]template.TfInfraSharedCoreTfVarsRepo{
 			opts.SharedInfraRepoOpts.Repo: {

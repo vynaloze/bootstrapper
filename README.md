@@ -11,7 +11,9 @@
  
 - GH_OWNER: <org name>
 - GH_TOKEN: <github pat>
+- GH_SSH_PRIVATE_KEY: <ssh private key>
 
 ### aws
 
-- TODO
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY

@@ -11,10 +11,18 @@ on:
         required: true
       gh_token:
         required: true
+      gh_ssh_private_key:
+        required: true
+      aws_access_key_id:
+        required: false
+      aws_secret_access_key:
+        required: false
 
 env:
   GITHUB_OWNER: ${{ secrets.gh_owner }}
   GITHUB_TOKEN: ${{ secrets.gh_token }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
 
 jobs:
   cd:
@@ -29,12 +37,21 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
+      - name: setup ssh key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.gh_ssh_private_key }}"
+
       - name: setup terraform
         uses: hashicorp/setup-terraform@v1
         with:
           cli_config_credentials_token: ${{ secrets.tf_api_token }}
 
       - name: init
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: terraform init
 
       - name: apply

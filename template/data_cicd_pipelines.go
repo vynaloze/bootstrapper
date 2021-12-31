@@ -1,18 +1,18 @@
 package template
 
-type TerraformInfraTemplate struct {
+type CICDTerraformInfraTemplate struct {
 	Project       string
 	Repo          string
-	Modules       []TerraformInfraModuleTemplate
+	Modules       []CICDTerraformInfraModuleTemplate
 	DefaultBranch string
 }
 
-type TerraformInfraModuleTemplate struct {
+type CICDTerraformInfraModuleTemplate struct {
 	Name         string
 	Dependencies []string
 }
 
-type TerraformModuleTemplate struct {
+type CICDTerraformModuleTemplate struct {
 	Project       string
 	Repo          string
 	Modules       []string

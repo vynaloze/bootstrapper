@@ -26,19 +26,9 @@ func SetupCloudEnvModule(opts *SetupCloudEnvModuleOpts) error {
 	branch := fmt.Sprintf("%s/%d", opts.EnvRepoOpts.GetAuthorName(), time.Now().UnixMilli())
 
 	log.Printf("preparing CICD pipelines templates")
-	ciFiles := make([]git.File, 0)
-	for _, file := range opts.CICDTemplates {
-		filename := fmt.Sprintf("templates/cicd/pipeline_templates/%s", file.SourceFile)
-		var pipelineFile []byte
-		if file.Data == nil {
-			pipelineFile, err = template.Raw(filename)
-		} else {
-			pipelineFile, err = template.Parse(filename, file.Data)
-		}
-		if err != nil {
-			return fmt.Errorf("error fetching template: %w", err)
-		}
-		ciFiles = append(ciFiles, git.File{Filename: file.TargetFile, Content: string(pipelineFile)})
+	ciFiles, err := templatesToGitFiles("cicd/pipeline_templates", opts.CICDTemplates)
+	if err != nil {
+		return fmt.Errorf("error preparing CICD templates: %w", err)
 	}
 	err = localActor.CommitMany(branch, "chore: add CI/CD pipelines templates", ciFiles...)
 	if err != nil {

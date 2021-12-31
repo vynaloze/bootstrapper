@@ -10,3 +10,5 @@ jobs:
     uses: [[ .Project ]]/[[ .Repo ]]/.github/workflows/tf_module_ci.yml@[[ .DefaultBranch ]]
     with:
       workdirs: [[ with .Modules ]]'[[ StringsJoin . " " ]]'[[ else ]]'.'[[ end ]]
+    secrets:
+      gh_ssh_private_key: ${{ secrets.GH_SSH_PRIVATE_KEY }}

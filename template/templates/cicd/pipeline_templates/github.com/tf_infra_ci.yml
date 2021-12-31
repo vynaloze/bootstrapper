@@ -17,4 +17,7 @@ jobs:
       tf_api_token: ${{ secrets.TF_API_TOKEN }}
       gh_owner: ${{ secrets.GH_OWNER }}
       gh_token: ${{ secrets.GH_TOKEN }}
+      gh_ssh_private_key: ${{ secrets.GH_SSH_PRIVATE_KEY }}
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   [[- end ]]

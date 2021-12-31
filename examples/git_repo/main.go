@@ -47,7 +47,7 @@ func main() {
 		Templates: []blueprint.Template{
 			{
 				SourceFile: fmt.Sprintf("%s/%s_ci.yml", newRepoOpts.Provider, template.TerraformModule),
-				Data: template.TerraformModuleTemplate{
+				Data: template.CICDTerraformModuleTemplate{
 					Project:       cicdRepoOpts.Project,
 					Repo:          cicdRepoOpts.Repo,
 					Modules:       []string{"base", "k8s"},
@@ -57,7 +57,7 @@ func main() {
 			},
 			{
 				SourceFile: fmt.Sprintf("%s/%s_cd.yml", newRepoOpts.Provider, template.TerraformModule),
-				Data: template.TerraformModuleTemplate{
+				Data: template.CICDTerraformModuleTemplate{
 					Project:       cicdRepoOpts.Project,
 					Repo:          cicdRepoOpts.Repo,
 					Modules:       []string{"base", "k8s"},

@@ -24,19 +24,9 @@ func AddCICDToRepo(opts *AddCICDToRepoOpts) error {
 
 	log.Printf("preparing CICD pipelines templates")
 
-	gitFiles := make([]git.File, 0)
-	for _, file := range opts.Templates {
-		filename := fmt.Sprintf("templates/cicd/pipeline_templates/%s", file.SourceFile)
-		var pipelineFile []byte
-		if file.Data == nil {
-			pipelineFile, err = template.Raw(filename)
-		} else {
-			pipelineFile, err = template.Parse(filename, file.Data)
-		}
-		if err != nil {
-			return fmt.Errorf("error fetching template: %w", err)
-		}
-		gitFiles = append(gitFiles, git.File{Filename: file.TargetFile, Content: string(pipelineFile)})
+	gitFiles, err := templatesToGitFiles("cicd/pipeline_templates", opts.Templates)
+	if err != nil {
+		return fmt.Errorf("error preparing CICD templates: %w", err)
 	}
 
 	log.Printf("pushing changes to remote repository")
@@ -67,35 +57,32 @@ func commitAndPush(localActor git.LocalActor, branch string, message string, git
 	return nil
 }
 
-func TfInfraSharedCICDPreset(sharedInfraGitOpts git.Opts, cicdRepoOpts git.Opts, terraformOpts TerraformOpts) AddCICDToRepoOpts {
-	return AddCICDToRepoOpts{
-		TargetRepoOpts: sharedInfraGitOpts,
-		Templates: []Template{
-			{
-				SourceFile: fmt.Sprintf("%s/%s_ci.yml", sharedInfraGitOpts.Provider, template.TerraformInfra),
-				Data: template.TerraformInfraTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					Modules:       []template.TerraformInfraModuleTemplate{{Name: terraformOpts.GetTerraformInfraCoreDir()}},
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: ".github/workflows/ci.yml",
+func TfInfraCICDPreset(infraGitOpts git.Opts, cicdRepoOpts git.Opts, modules []template.CICDTerraformInfraModuleTemplate) []Template {
+	return []Template{
+		{
+			SourceFile: fmt.Sprintf("%s/%s_ci.yml", infraGitOpts.Provider, template.TerraformInfra),
+			Data: template.CICDTerraformInfraTemplate{
+				Project:       cicdRepoOpts.Project,
+				Repo:          cicdRepoOpts.Repo,
+				Modules:       modules,
+				DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 			},
-			{
-				SourceFile: fmt.Sprintf("%s/%s_cd.yml", sharedInfraGitOpts.Provider, template.TerraformInfra),
-				Data: template.TerraformInfraTemplate{
-					Project:       cicdRepoOpts.Project,
-					Repo:          cicdRepoOpts.Repo,
-					Modules:       []template.TerraformInfraModuleTemplate{{Name: terraformOpts.GetTerraformInfraCoreDir()}},
-					DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
-				},
-				TargetFile: ".github/workflows/cd.yml",
+			TargetFile: ".github/workflows/ci.yml",
+		},
+		{
+			SourceFile: fmt.Sprintf("%s/%s_cd.yml", infraGitOpts.Provider, template.TerraformInfra),
+			Data: template.CICDTerraformInfraTemplate{
+				Project:       cicdRepoOpts.Project,
+				Repo:          cicdRepoOpts.Repo,
+				Modules:       modules,
+				DefaultBranch: cicdRepoOpts.GetDefaultBranch(),
 			},
-			{
-				SourceFile: ".tflint.hcl",
-				Data:       nil,
-				TargetFile: ".tflint.hcl",
-			},
+			TargetFile: ".github/workflows/cd.yml",
+		},
+		{
+			SourceFile: ".tflint.hcl",
+			Data:       nil,
+			TargetFile: ".tflint.hcl",
 		},
 	}
 }
@@ -104,7 +91,7 @@ func TfEnvCICDPreset(tfEnvRepoOpts git.Opts, cicdRepoOpts git.Opts) []Template {
 	return []Template{
 		{
 			SourceFile: fmt.Sprintf("%s/%s_ci.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
-			Data: template.TerraformModuleTemplate{
+			Data: template.CICDTerraformModuleTemplate{
 				Project:       cicdRepoOpts.Project,
 				Repo:          cicdRepoOpts.Repo,
 				Modules:       []string{"base", "k8s"},
@@ -114,7 +101,7 @@ func TfEnvCICDPreset(tfEnvRepoOpts git.Opts, cicdRepoOpts git.Opts) []Template {
 		},
 		{
 			SourceFile: fmt.Sprintf("%s/%s_cd.yml", tfEnvRepoOpts.Provider, template.TerraformModule),
-			Data: template.TerraformModuleTemplate{
+			Data: template.CICDTerraformModuleTemplate{
 				Project:       cicdRepoOpts.Project,
 				Repo:          cicdRepoOpts.Repo,
 				DefaultBranch: cicdRepoOpts.GetDefaultBranch(),

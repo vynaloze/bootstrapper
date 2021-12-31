@@ -8,6 +8,7 @@ type RemoteActor interface {
 	Actor
 	ReadFile(file string) (string, error)
 	RequestReview(branch *string, summary *string) error
+	LatestTag() (string, error)
 }
 
 func NewRemote(opts *Opts) (RemoteActor, error) {
