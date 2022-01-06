@@ -1,0 +1,14 @@
+argo-cd:
+  server:
+    config:
+      repositories: |
+        - type: helm
+          url: https://argoproj.github.io/argo-helm
+          name: argo
+    extraArgs:
+      - --insecure
+    ingress:
+      enabled: true
+      ingressClassName: ingress-nginx-internal
+      paths:
+        - /
