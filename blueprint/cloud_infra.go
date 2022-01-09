@@ -85,6 +85,7 @@ func SetupCloudInfra(opts *SetupCloudInfraOpts) error {
 		return fmt.Errorf("error preparing dynamic terraform files: %w", err)
 	}
 	tfFiles := append(tfTemplateFiles, tfDynamicFiles...)
+	tfFiles = append(tfFiles, git.File{Filename: ".gitignore", Content: template.TerraformGitignore()})
 
 	message := fmt.Sprintf("feat: add initial %s %s module", opts.CloudProvider, opts.Module)
 	err = infraLocalActor.CommitMany(branch, message, tfFiles...)

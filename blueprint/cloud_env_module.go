@@ -44,6 +44,7 @@ func SetupCloudEnvModule(opts *SetupCloudEnvModuleOpts) error {
 	for filename, content := range allFiles {
 		tfFiles = append(tfFiles, git.File{Filename: filename, Content: string(content)})
 	}
+	tfFiles = append(tfFiles, git.File{Filename: ".gitignore", Content: template.TerraformGitignore()})
 	message := fmt.Sprintf("feat: add initial %s modules", opts.CloudProvider)
 	err = localActor.CommitMany(branch, message, tfFiles...)
 	if err != nil {
