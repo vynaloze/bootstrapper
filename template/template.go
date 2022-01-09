@@ -13,18 +13,26 @@ func Parse(tpl string, data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot read template %s: %w", tpl, err)
 	}
+	parsed, err := ParseContent(content, data)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing template %s: %w", tpl, err)
+	}
+	return parsed, nil
+}
+
+func ParseContent(content []byte, data interface{}) ([]byte, error) {
 	t, err := template.
 		New("").
 		Delims("[[", "]]").
 		Funcs(template.FuncMap{"StringsJoin": strings.Join}).
 		Parse(string(content))
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse template %s: %w", tpl, err)
+		return nil, fmt.Errorf("cannot parse: %w", err)
 	}
 	var buf bytes.Buffer
 	err = t.Execute(&buf, data)
 	if err != nil {
-		return nil, fmt.Errorf("cannot execute template %s: %w", tpl, err)
+		return nil, fmt.Errorf("cannot execute: %w", err)
 	}
 	return buf.Bytes(), nil
 }

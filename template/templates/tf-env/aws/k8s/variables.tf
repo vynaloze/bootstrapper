@@ -87,7 +87,7 @@ variable "external_dns_service_account_namespace" {
 variable "external_dns_service_account_name" {
   description = "ExternalDNS service account name"
 
-  default = "external-dns"
+  default = "external-dns-internal"
   type    = string
 }
 

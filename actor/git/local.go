@@ -23,6 +23,7 @@ type LocalActor interface {
 	CommitMany(branch string, message string, files ...File) error
 	Init(path string) error
 	Push() error
+	Clone() (string, error)
 }
 
 type File struct {
@@ -51,7 +52,7 @@ func (l *localActor) Commit(content *string, file *string, branch *string, messa
 
 func (l *localActor) CommitMany(branch string, message string, files ...File) error {
 	if l.r == nil {
-		err := l.clone()
+		_, err := l.Clone()
 		if err != nil {
 			return fmt.Errorf("error cloning repository: %w", err)
 		}
@@ -85,13 +86,13 @@ func (l *localActor) CommitMany(branch string, message string, files ...File) er
 		parent := filepath.Dir(fullPath)
 		if parent != string(os.PathSeparator) && parent != "." {
 			// needs to create a directory
-			err := os.MkdirAll(parent, 0644)
+			err := os.MkdirAll(parent, 0755)
 			if err != nil {
 				return fmt.Errorf("error creating directory %s: %w", parent, err)
 			}
 		}
 
-		err := ioutil.WriteFile(fullPath, []byte(file.Content), 0644)
+		err := ioutil.WriteFile(fullPath, []byte(file.Content), 0755)
 		if err != nil {
 			return fmt.Errorf("error writing file %s: %w", file.Filename, err)
 		}
@@ -115,10 +116,10 @@ func (l *localActor) CommitMany(branch string, message string, files ...File) er
 	return nil
 }
 
-func (l *localActor) clone() error {
+func (l *localActor) Clone() (string, error) {
 	dir, err := os.MkdirTemp("", l.GetAuthorName()+"-")
 	if err != nil {
-		return err
+		return "", err
 	}
 	path := filepath.Join(dir, l.Repo)
 	l.repoDir = path
@@ -128,11 +129,11 @@ func (l *localActor) clone() error {
 		Auth: &http.BasicAuth{Username: l.RemoteAuthUser, Password: l.RemoteAuthPass},
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 	log.Printf("cloned %s to %s", l.GetRemoteURL(), path)
 	l.r = r
-	return nil
+	return path, nil
 }
 
 func (l *localActor) Init(path string) error {

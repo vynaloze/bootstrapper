@@ -45,18 +45,6 @@ func AddCICDToRepo(opts *AddCICDToRepoOpts) error {
 	return nil
 }
 
-func commitAndPush(localActor git.LocalActor, branch string, message string, gitFiles []git.File) error {
-	err := localActor.CommitMany(branch, message, gitFiles...)
-	if err != nil {
-		return fmt.Errorf("error committing files: %w", err)
-	}
-	err = localActor.Push()
-	if err != nil {
-		return fmt.Errorf("error pushing changes: %w", err)
-	}
-	return nil
-}
-
 func TfInfraCICDPreset(infraGitOpts git.Opts, cicdRepoOpts git.Opts, modules []template.CICDTerraformInfraModuleTemplate) []Template {
 	return []Template{
 		{

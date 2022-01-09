@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "external_dns_role_assume_role_policy" {
 }
 
 resource "aws_iam_role" "external_dns_role" {
-  name               = "${var.environment}-external-dns"
+  name               = "${var.environment}-${var.external_dns_service_account_name}"
   assume_role_policy = data.aws_iam_policy_document.external_dns_role_assume_role_policy.json
 
   tags = local.common_tags
@@ -43,7 +43,7 @@ data "aws_iam_policy_document" "external_dns_role_policy" {
 }
 
 resource "aws_iam_role_policy" "external_dns_account_role" {
-  name   = "${var.environment}-external-dns"
+  name   = "${var.environment}-${var.external_dns_service_account_name}"
   role   = aws_iam_role.external_dns_role.id
   policy = data.aws_iam_policy_document.external_dns_role_policy.json
 }

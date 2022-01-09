@@ -78,12 +78,14 @@ func main() {
 }
 
 func createTfEnvRepo(sharedInfraGitOpts git.Opts, tfEnvRepoOpts git.Opts) {
-	createGitRepoOpts := blueprint.CreateGitRepoOpts{
+	createGitRepoOpts := blueprint.CreateGitReposOpts{
 		SharedInfraRepoOpts: sharedInfraGitOpts,
-		NewRepoOpts:         tfEnvRepoOpts,
-		NewRepoType:         template.TerraformModule,
+		NewReposSpecs: []blueprint.CreateGitReposNewRepoSpec{{
+			NewRepoOpts: tfEnvRepoOpts,
+			NewRepoType: template.TerraformModule,
+		}},
 	}
-	err := blueprint.CreateGitRepo(createGitRepoOpts)
+	err := blueprint.CreateGitRepos(createGitRepoOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -109,13 +111,15 @@ func setupTfEnvRepo(tfEnvRepoOpts git.Opts, cloudProvider template.CloudProvider
 }
 
 func createTfInfraRepo(sharedInfraGitOpts git.Opts, tfInfraRepoOpts git.Opts) {
-	createGitRepoOpts := blueprint.CreateGitRepoOpts{
+	createGitRepoOpts := blueprint.CreateGitReposOpts{
 		SharedInfraRepoOpts: sharedInfraGitOpts,
-		NewRepoOpts:         tfInfraRepoOpts,
-		NewRepoType:         template.TerraformInfra,
+		NewReposSpecs: []blueprint.CreateGitReposNewRepoSpec{{
+			NewRepoOpts: tfInfraRepoOpts,
+			NewRepoType: template.TerraformInfra,
+		}},
 		NewRepoExtraContent: template.GitRepoExtraContent{Modules: []string{"base", "k8s"}},
 	}
-	err := blueprint.CreateGitRepo(createGitRepoOpts)
+	err := blueprint.CreateGitRepos(createGitRepoOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}

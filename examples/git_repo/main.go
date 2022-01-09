@@ -31,13 +31,15 @@ func main() {
 	newRepoOpts.Repo = "tf-env"
 	cicdRepoOpts.Repo = "cicd"
 
-	opts := blueprint.CreateGitRepoOpts{
+	opts := blueprint.CreateGitReposOpts{
 		SharedInfraRepoOpts: sharedInfraGitOpts,
-		NewRepoOpts:         newRepoOpts,
-		NewRepoType:         template.TerraformModule,
+		NewReposSpecs: []blueprint.CreateGitReposNewRepoSpec{{
+			NewRepoOpts: newRepoOpts,
+			NewRepoType: template.TerraformModule,
+		}},
 	}
 
-	err = blueprint.CreateGitRepo(opts)
+	err = blueprint.CreateGitRepos(opts)
 	if err != nil {
 		fmt.Println(err)
 	}

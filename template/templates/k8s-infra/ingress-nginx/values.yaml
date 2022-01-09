@@ -1,0 +1,31 @@
+internal:
+  nameOverride: ingress-nginx-internal
+  fullnameOverride: ingress-nginx-internal
+
+  controller:
+    ingressClassResource:
+      name: ingress-nginx-internal
+      controllerValue: "k8s.io/ingress-nginx-internal"
+
+    replicaCount: 2
+    minAvailable: 2
+
+    service:
+      annotations:
+        [[- range $k, $v := .InternalLoadBalancerConfig ]]
+        [[ $k ]]: [[ $v ]]
+        [[- end ]]
+
+    resources:
+      # no limits
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: ingress-nginx-internal

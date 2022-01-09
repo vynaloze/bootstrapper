@@ -1,0 +1,43 @@
+internal:
+  nameOverride: external-dns-internal
+  fullnameOverride: external-dns-internal
+
+  provider: [[ .InternalDnsProvider ]]
+  [[ .InternalDnsProvider ]]:
+    [[- range $k, $v := .InternalDnsProviderConfig ]]
+    [[ $k ]]: [[ $v ]]
+    [[- end ]]
+
+  replicas: 2
+
+  ## Allow external-dns to publish DNS records for ClusterIP services
+  ##
+  publishInternalServices: true
+
+  ## Modify how DNS records are synchronized between sources and providers (options: sync, upsert-only)
+  ##
+  policy: upsert-only
+
+  ## Verbosity of the ExternalDNS logs. Available values are:
+  ## - panic, debug, info, warn, error, fatal
+  ##
+  logLevel: info
+
+  ## Formats of the ExternalDNS logs. Available values are:
+  ## - text, json
+  ##
+  logFormat: text
+
+  ## Prometheus Exporter / Metrics
+  ##
+  metrics:
+    enabled: true
+    podAnnotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "7979"
+
+  resources:
+    # no limits
+    requests:
+      cpu: 10m
+      memory: 64Mi

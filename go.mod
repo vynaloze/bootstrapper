@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-exec v0.15.0
 	github.com/rodaine/hclencoder v0.0.1
 	github.com/vdombrovski/hclencoder v0.0.0-20210622144159-292cffc6fef1
-	github.com/vynaloze/go-helm-client v0.8.4-1
+	github.com/vynaloze/go-helm-client v0.8.4-2
 	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.7.2

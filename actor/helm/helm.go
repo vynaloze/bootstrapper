@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -64,8 +65,13 @@ func New(opts Opts) (Actor, error) {
 
 	opt := &helmclient.KubeConfClientOptions{
 		Options: &helmclient.Options{
-			// noop logger
-			DebugLog: func(format string, v ...interface{}) {},
+			DebugLog: func(format string, v ...interface{}) {
+				msg := fmt.Sprintf(format, v...)
+				if strings.Contains(msg, "is not ready") {
+					return
+				}
+				log.Printf("[k8s] %s", msg)
+			},
 		},
 		KubeConfig: kubeConfig,
 	}
@@ -84,9 +90,9 @@ func (a *actor) Install(opts InstallOpts) error {
 		opts.Namespace = &n
 	}
 
-	log.Printf("installing chart dependencies")
+	log.Printf("installing Helm repos")
 	if err := a.addChartDeps(opts); err != nil {
-		return fmt.Errorf("cannot add chart dependencies: %w", err)
+		return fmt.Errorf("cannot add Helm repos: %w", err)
 	}
 
 	log.Printf("creating secrets")
@@ -104,16 +110,29 @@ func (a *actor) Install(opts InstallOpts) error {
 		return fmt.Errorf("cannot change to chart directory (%s): %w", opts.Path, err)
 	}
 
+	valuesYaml := ""
+	for _, vf := range opts.ValuesFiles {
+		c, err := ioutil.ReadFile(filepath.Join(opts.Path, vf))
+		if err != nil {
+			return fmt.Errorf("falied to read values file %s: %w", vf, err)
+		}
+		valuesYaml = valuesYaml + "\n" + string(c)
+	}
+
 	chartSpec := helmclient.ChartSpec{
 		ReleaseName:      opts.Name,
 		ChartName:        ".",
 		Namespace:        *opts.Namespace,
-		UpgradeCRDs:      true,
+		ValuesYaml:       valuesYaml,
 		DependencyUpdate: true,
 		Wait:             true,
 		Timeout:          5 * time.Minute,
 	}
 
+	log.Printf("update chart dependencies")
+	if err := a.helmClient.UpdateDependencies(&chartSpec); err != nil {
+		return fmt.Errorf("cannot download Helm chart dependencies: %w", err)
+	}
 	log.Printf("installing release")
 	if _, err := a.helmClient.InstallOrUpgradeChart(context.Background(), &chartSpec); err != nil {
 		return fmt.Errorf("cannot install Helm chart: %w", err)

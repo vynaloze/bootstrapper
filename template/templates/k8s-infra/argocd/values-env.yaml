@@ -1,0 +1,61 @@
+argo-cd:
+  server:
+    config:
+      repositories: |
+        - url: git@[[ .GitProvider ]]:[[ .GitProject ]]/[[ .GitInfraRepo ]].git
+          sshPrivateKeySecret:
+            name: argocd-git-ssh-readonly-k8s-infra
+            key: private-key
+        - url: git@[[ .GitProvider ]]:[[ .GitProject ]]/[[ .GitAppsRepo ]].git
+          sshPrivateKeySecret:
+            name: argocd-git-ssh-readonly-[[ .GitAppsRepo ]]
+            key: private-key
+        - type: helm
+          url: https://argoproj.github.io/argo-helm
+          name: argo
+        - type: helm
+          url: https://kubernetes.github.io/ingress-nginx
+          name: ingress-nginx
+        - type: helm
+          url: https://charts.bitnami.com/bitnami
+          name: external-dns
+    ingress:
+      hosts:
+        - argocd.[[ .Domain ]]
+
+    additionalApplications:
+      - name: argocd
+        namespace: default
+        project: default
+        source:
+          repoURL: git@[[ .GitProvider ]]:[[ .GitProject ]]/[[ .GitInfraRepo ]].git
+          targetRevision: [[ .GitDefaultBranch ]]
+          path: argocd
+          helm:
+            valueFiles:
+              - values-[[ .Environment ]].yaml
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: default
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+
+      - name: argocd-apps
+        namespace: default
+        project: default
+        source:
+          repoURL: git@[[ .GitProvider ]]:[[ .GitProject ]]/[[ .GitAppsRepo ]].git
+          targetRevision: [[ .GitDefaultBranch ]]
+          path: apps
+          directory:
+            recurse: true
+            jsonnet: {}
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: default
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true

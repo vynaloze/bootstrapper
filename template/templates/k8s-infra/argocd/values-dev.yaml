@@ -1,5 +1,0 @@
-argo-cd:
-  server:
-    ingress:
-      hosts:
-        - argocd.b-demo.org

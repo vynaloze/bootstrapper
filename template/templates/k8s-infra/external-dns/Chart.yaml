@@ -1,0 +1,9 @@
+apiVersion: v2
+name: external-dns
+version: 1.0.0
+type: application
+dependencies:
+  - name: external-dns
+    version: 6.0.2
+    repository: https://charts.bitnami.com/bitnami
+    alias: internal

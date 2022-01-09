@@ -7,20 +7,30 @@ import (
 	"github.com/hashicorp/hcl"
 	hclencoder_maps "github.com/vdombrovski/hclencoder"
 	"log"
+	"strings"
 	"time"
 )
 
-type CreateGitRepoOpts struct {
+type CreateGitReposOpts struct {
 	SharedInfraRepoOpts git.Opts
-	NewRepoOpts         git.Opts
-	NewRepoType         template.GitRepoType
+	NewReposSpecs       []CreateGitReposNewRepoSpec
 
 	// optional
 	NewRepoExtraContent template.GitRepoExtraContent
 }
 
-func CreateGitRepo(opts CreateGitRepoOpts) error {
-	log.Printf("creating new git repo: %s (type: %s) using %s repo", opts.NewRepoOpts.Repo, opts.NewRepoType, opts.SharedInfraRepoOpts.Repo)
+type CreateGitReposNewRepoSpec struct {
+	NewRepoOpts git.Opts
+	NewRepoType template.GitRepoType
+}
+
+func CreateGitRepos(opts CreateGitReposOpts) error {
+	log.Printf("creating new git repo(s) using %s repo:", opts.SharedInfraRepoOpts.Repo)
+	reposNames := make([]string, 0)
+	for _, r := range opts.NewReposSpecs {
+		log.Printf("%s (type: %s)", r.NewRepoOpts.Repo, r.NewRepoType)
+		reposNames = append(reposNames, r.NewRepoOpts.Repo)
+	}
 	sharedInfraGitActor, err := git.NewRemote(&opts.SharedInfraRepoOpts)
 	if err != nil {
 		return fmt.Errorf("error initializing git actor: %w", err)
@@ -39,10 +49,12 @@ func CreateGitRepo(opts CreateGitRepoOpts) error {
 	}
 	log.Printf("found: %+v", reposTfVars)
 
-	log.Printf("adding new repo")
-	err = reposTfVars.AddRepo(opts.NewRepoType, opts.NewRepoExtraContent, opts.NewRepoOpts)
-	if err != nil {
-		return fmt.Errorf("error adding new repo: %w", err)
+	log.Printf("adding new repo(s)")
+	for _, r := range opts.NewReposSpecs {
+		err = reposTfVars.AddRepo(r.NewRepoType, opts.NewRepoExtraContent, r.NewRepoOpts)
+		if err != nil {
+			return fmt.Errorf("error adding new repo: %w", err)
+		}
 	}
 	log.Printf("pushing changes to remote repository")
 
@@ -51,8 +63,8 @@ func CreateGitRepo(opts CreateGitRepoOpts) error {
 		return fmt.Errorf("error encoding updated tfvars: %w", err)
 	}
 	contentStr := string(content)
-	branch := fmt.Sprintf("%s/%d", opts.NewRepoOpts.GetAuthorName(), time.Now().UnixMilli())
-	message := fmt.Sprintf("feat: add %s repo", opts.NewRepoOpts.Repo)
+	branch := fmt.Sprintf("%s/%d", opts.NewReposSpecs[0].NewRepoOpts.GetAuthorName(), time.Now().UnixMilli())
+	message := fmt.Sprintf("feat: add repo(s): %s", strings.Join(reposNames, ", "))
 
 	err = sharedInfraGitActor.Commit(&contentStr, &file, &branch, &message, true)
 	if err != nil {

@@ -6,16 +6,6 @@ import (
 	"fmt"
 )
 
-//go:embed templates/gitignore_editors.tpl
-var gitignoreEditors string
-
-//go:embed templates/gitignore_terraform.tpl
-var gitignoreTerraform string
-
-func TerraformGitignore() string {
-	return gitignoreTerraform + "\n" + gitignoreEditors
-}
-
 type TerraformProvider struct {
 	Source  string
 	Version string

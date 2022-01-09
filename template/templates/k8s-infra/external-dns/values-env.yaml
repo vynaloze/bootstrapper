@@ -1,0 +1,8 @@
+internal:
+  txtOwnerId: [[ .InternalTxtOwnerId ]]
+  domainFilters: [ [[ .InternalDomain ]] ]
+  serviceAccount:
+    annotations:
+      [[- range $k, $v := .ServiceAccountAnnotations ]]
+      [[ $k ]]: [[ $v ]]
+      [[- end ]]
